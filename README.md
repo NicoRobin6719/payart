@@ -1,5 +1,17 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Perfis do PayArt
+
+O cadastro permite escolher entre comprador e artista. Depois de entrar, cada tipo de conta acessa sua área em `/painel`: artistas podem publicar e editar obras, personalizar o perfil com foto e banner e registrar uma chave Pix; compradores podem manter seu perfil de consumidor e explorar o catálogo.
+
+## Exploração e interação
+
+A galeria permite pesquisar por título, categoria, descrição ou artista e filtrar por categoria. Cada obra tem uma página de detalhes com avaliação, comentários e contato com o artista. Pessoas autenticadas podem favoritar obras e consultar a lista no painel; conversas ficam disponíveis em `/mensagens`.
+
+O catálogo e o formulário de publicação oferecem categorias consistentes, incluindo desenho, ilustração, arte digital, escultura e grafite.
+
+Este fluxo continua sendo um protótipo de interface: contas, obras, imagens, favoritos, avaliações e mensagens ficam no armazenamento local do navegador e não são sincronizados entre dispositivos. O projeto Firebase ainda precisa ser conectado e configurado em `.env.local` antes de habilitar autenticação, persistência e uploads compartilhados. A chave Pix é apenas uma preferência local; o sistema completo de pagamentos está fora desta versão do backlog.
+
 ## Getting Started
 
 First, run the development server:
