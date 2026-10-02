@@ -7,6 +7,7 @@ import { Account } from "./account-store";
 import { getPublicArtworks, PublicArtwork } from "./catalog-store";
 import { getFavoriteIds, toggleFavorite } from "./community-store";
 import Toast from "./Toast";
+import MediaImage from "./MediaImage";
 
 function formatPrice(price: string) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(price));
@@ -17,10 +18,10 @@ export default function FavoritesPanel({ account }: { account: Account }) {
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
 
-  const loadFavorites = useCallback(() => {
+  const loadFavorites = useCallback(async () => {
     try {
-      const favoriteIds = getFavoriteIds(account.id);
-      setArtworks(getPublicArtworks().filter((artwork) => favoriteIds.includes(artwork.id)));
+      const [favoriteIds, publicArtworks] = await Promise.all([getFavoriteIds(account.id), getPublicArtworks()]);
+      setArtworks(publicArtworks.filter((artwork) => favoriteIds.includes(artwork.id)));
       setError("");
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "Não foi possível carregar os favoritos.");
@@ -31,16 +32,14 @@ export default function FavoritesPanel({ account }: { account: Account }) {
 
   useEffect(() => {
     let cancelled = false;
-    queueMicrotask(() => {
-      if (!cancelled) loadFavorites();
-    });
+    queueMicrotask(() => { if (!cancelled) void loadFavorites(); });
     return () => { cancelled = true; };
   }, [loadFavorites]);
 
-  function removeFavorite(artworkId: string) {
+  async function removeFavorite(artworkId: string) {
     try {
-      toggleFavorite(account.id, artworkId);
-      loadFavorites();
+      await toggleFavorite(account.id, artworkId);
+      await loadFavorites();
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "Não foi possível remover dos favoritos.");
     }
@@ -68,7 +67,7 @@ export default function FavoritesPanel({ account }: { account: Account }) {
           {artworks.map((artwork) => (
             <article key={artwork.id} className="overflow-hidden rounded-[22px] border border-black/5 bg-white/80 shadow-sm">
               <Link href={`/obras/${encodeURIComponent(artwork.id)}`} className="flex gap-4 p-4 transition hover:bg-[#faf9fc]">
-                <div role="img" aria-label={artwork.title} className="h-24 w-24 shrink-0 rounded-xl bg-gradient-to-br from-[#eee8ff] to-[#f8e8f5] bg-cover bg-center" style={artwork.image ? { backgroundImage: `url("${artwork.image}")` } : undefined} />
+                <MediaImage src={artwork.image} alt={artwork.title} className="h-24 w-24 shrink-0 rounded-xl bg-white" imageClassName="object-contain p-1" sizes="96px" />
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-[#5c2df2]">{artwork.category}</p>
                   <h2 className="mt-1 truncate font-bold">{artwork.title}</h2>

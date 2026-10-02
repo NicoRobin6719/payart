@@ -2,8 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Account, getCurrentAccount } from "./account-store";
-import { Conversation, getConversations, replyToConversation } from "./community-store";
+import { Account, getCurrentAccount, isLocalAccount } from "./account-store";
+import { Conversation, replyToConversation, subscribeToConversations } from "./community-store";
 import Toast from "./Toast";
 
 export default function MessagesCenter({ account: accountProp }: { account?: Account }) {
@@ -20,8 +20,9 @@ export default function MessagesCenter({ account: accountProp }: { account?: Acc
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
+      void (async () => {
       try {
-        const currentAccount = getCurrentAccount();
+        const currentAccount = await getCurrentAccount();
         if (currentAccount) setStoredAccount(currentAccount);
         else router.replace(`/login?next=${encodeURIComponent("/mensagens")}`);
       } catch (issue) {
@@ -29,6 +30,7 @@ export default function MessagesCenter({ account: accountProp }: { account?: Acc
       } finally {
         setReady(true);
       }
+      })();
     });
     return () => { cancelled = true; };
   }, [accountProp, router]);
@@ -37,27 +39,20 @@ export default function MessagesCenter({ account: accountProp }: { account?: Acc
 
   useEffect(() => {
     if (!account) return;
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled) return;
-      try {
-        setConversations(getConversations(account.id));
-      } catch (issue) {
-        setError(issue instanceof Error ? issue.message : "Não foi possível carregar suas mensagens.");
-      }
-    });
-    return () => { cancelled = true; };
+    return subscribeToConversations(account.id, (items) => {
+      setConversations(items);
+      setError("");
+    }, (issue) => setError(issue.message));
   }, [account]);
 
   const activeConversation = conversations.find((conversation) => conversation.id === selectedId) ?? conversations[0] ?? null;
 
-  function handleReply(event: FormEvent<HTMLFormElement>) {
+  async function handleReply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!account || !activeConversation) return;
     try {
-      replyToConversation(account, activeConversation, reply);
+      await replyToConversation(account, activeConversation, reply);
       setReply("");
-      setConversations(getConversations(account.id));
       setError("");
     } catch (issue) {
       setError(issue instanceof Error ? issue.message : "Não foi possível enviar sua mensagem.");
@@ -123,7 +118,11 @@ export default function MessagesCenter({ account: accountProp }: { account?: Acc
           )}
         </div>
       )}
-      <p className="mt-4 text-xs text-[#746e80]">Protótipo: mensagens ficam salvas somente neste navegador e não são entregues a outro dispositivo.</p>
+      <p className="mt-4 text-xs text-[#746e80]">
+        {isLocalAccount(account.id)
+          ? "Este perfil está em modo local: as conversas ficam salvas somente neste navegador. Crie o Firestore para sincronizar em tempo real entre dispositivos."
+          : "As conversas são atualizadas em tempo real e salvas no Firebase para os participantes autenticados."}
+      </p>
     </section>
   );
 }

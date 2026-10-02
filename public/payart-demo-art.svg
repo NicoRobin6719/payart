@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" role="img" aria-labelledby="title desc">
+  <title id="title">Jardim violeta</title>
+  <desc id="desc">Ilustração abstrata original com formas orgânicas e flores em tons de violeta e coral.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#f7b7a3"/>
+      <stop offset=".5" stop-color="#8f63cf"/>
+      <stop offset="1" stop-color="#263768"/>
+    </linearGradient>
+    <radialGradient id="sun">
+      <stop stop-color="#fff7ce"/>
+      <stop offset="1" stop-color="#ffbd84"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="900" fill="url(#background)"/>
+  <circle cx="680" cy="235" r="132" fill="url(#sun)" opacity=".95"/>
+  <path d="M0 620Q145 498 298 630T598 601T900 576V900H0Z" fill="#40346e" opacity=".7"/>
+  <path d="M0 732Q190 625 370 730T720 706T900 686V900H0Z" fill="#202e59" opacity=".8"/>
+  <g fill="none" stroke="#f9d6a7" stroke-linecap="round" stroke-width="14" opacity=".9">
+    <path d="M188 810Q224 628 287 476"/>
+    <path d="M427 820Q402 604 464 416"/>
+    <path d="M686 828Q615 637 636 478"/>
+  </g>
+  <g fill="#fb987e">
+    <ellipse cx="278" cy="466" rx="34" ry="73" transform="rotate(-30 278 466)"/>
+    <ellipse cx="278" cy="466" rx="34" ry="73" transform="rotate(30 278 466)"/>
+    <ellipse cx="278" cy="466" rx="34" ry="73" transform="rotate(90 278 466)"/>
+    <circle cx="278" cy="466" r="25" fill="#ffe1a3"/>
+  </g>
+  <g fill="#f6c56d">
+    <ellipse cx="458" cy="405" rx="31" ry="65" transform="rotate(-35 458 405)"/>
+    <ellipse cx="458" cy="405" rx="31" ry="65" transform="rotate(35 458 405)"/>
+    <ellipse cx="458" cy="405" rx="31" ry="65" transform="rotate(90 458 405)"/>
+    <circle cx="458" cy="405" r="22" fill="#fff0bd"/>
+  </g>
+  <g fill="#e9b2db">
+    <ellipse cx="631" cy="467" rx="34" ry="73" transform="rotate(-30 631 467)"/>
+    <ellipse cx="631" cy="467" rx="34" ry="73" transform="rotate(30 631 467)"/>
+    <ellipse cx="631" cy="467" rx="34" ry="73" transform="rotate(90 631 467)"/>
+    <circle cx="631" cy="467" r="25" fill="#ffe1a3"/>
+  </g>
+  <g fill="#94bdab" opacity=".95">
+    <ellipse cx="228" cy="647" rx="64" ry="23" transform="rotate(-28 228 647)"/>
+    <ellipse cx="341" cy="600" rx="65" ry="23" transform="rotate(28 341 600)"/>
+    <ellipse cx="405" cy="663" rx="67" ry="24" transform="rotate(-24 405 663)"/>
+    <ellipse cx="535" cy="622" rx="66" ry="24" transform="rotate(27 535 622)"/>
+    <ellipse cx="626" cy="674" rx="68" ry="24" transform="rotate(-25 626 674)"/>
+    <ellipse cx="741" cy="636" rx="66" ry="24" transform="rotate(25 741 636)"/>
+  </g>
+</svg>

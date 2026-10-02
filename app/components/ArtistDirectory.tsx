@@ -3,6 +3,7 @@
 import { UserRound } from "lucide-react";
 import Link from "next/link";
 import Toast from "./Toast";
+import MediaImage from "./MediaImage";
 import useRegisteredAccounts from "./use-registered-accounts";
 
 export default function ArtistDirectory() {
@@ -26,17 +27,10 @@ export default function ArtistDirectory() {
         <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {artists.map((artist) => (
             <article id={artist.id} key={artist.id} className="scroll-mt-8 overflow-hidden rounded-[22px] border border-black/5 bg-white/80 shadow-lg">
-              <div
-                role={artist.banner ? "img" : undefined}
-                aria-label={artist.banner ? `Banner de ${artist.name}` : undefined}
-                className="h-32 bg-gradient-to-br from-[#5c2df2] via-[#a45be8] to-[#ffbde7] bg-cover bg-center"
-                style={artist.banner ? { backgroundImage: `url("${artist.banner}")` } : undefined}
-              />
+              <MediaImage src={artist.banner} alt={`Banner de ${artist.name}`} className="h-32 bg-gradient-to-br from-[#5c2df2] via-[#a45be8] to-[#ffbde7]" />
               <div className="p-5">
-                <div className="-mt-12 mb-3 grid h-16 w-16 place-items-center overflow-hidden rounded-full border-4 border-white bg-[#eee8ff] text-[#5c2df2]">
-                  {artist.avatar ? (
-                    <div role="img" aria-label={`Foto de ${artist.name}`} className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url("${artist.avatar}")` }} />
-                  ) : <UserRound size={27} />}
+                <div className="-mt-12 mb-3 h-16 w-16 rounded-full border-4 border-white bg-white text-[#5c2df2]">
+                  <MediaImage src={artist.avatar} alt={`Foto de ${artist.name}`} className="h-full w-full rounded-full" sizes="64px" fallback={<UserRound className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" size={27} />} />
                 </div>
                 <h3 className="text-lg font-bold">{artist.name}</h3>
                 <p className="mt-2 min-h-12 text-sm leading-6 text-[#5f586d]">{artist.bio || "Artista independente na comunidade PayArt."}</p>

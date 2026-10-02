@@ -6,6 +6,7 @@ import { ArrowLeft, Palette, UserRound } from "lucide-react";
 import { Account, getAccounts } from "./account-store";
 import { getPublicArtworks, PublicArtwork } from "./catalog-store";
 import Toast from "./Toast";
+import MediaImage from "./MediaImage";
 
 export default function ArtistPublicProfile({ artistId }: { artistId: string }) {
   const [artist, setArtist] = useState<Account | null>(null);
@@ -17,18 +18,19 @@ export default function ArtistPublicProfile({ artistId }: { artistId: string }) 
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
-      try {
-        const accounts = getAccounts();
-        const foundArtist = accounts.find((account) => account.id === artistId && account.role === "artist") ?? null;
-        setArtist(foundArtist);
-        if (foundArtist) {
-          setArtworks(getPublicArtworks(accounts).filter((artwork) => artwork.artistId === foundArtist.id));
+      void (async () => {
+        try {
+          const [accounts, publicArtworks] = await Promise.all([getAccounts(), getPublicArtworks()]);
+          if (cancelled) return;
+          const foundArtist = accounts.find((account) => account.id === artistId && account.role === "artist") ?? null;
+          setArtist(foundArtist);
+          if (foundArtist) setArtworks(publicArtworks.filter((artwork) => artwork.artistId === foundArtist.id));
+        } catch (issue) {
+          if (!cancelled) setError(issue instanceof Error ? issue.message : "Não foi possível carregar este perfil.");
+        } finally {
+          if (!cancelled) setReady(true);
         }
-      } catch (issue) {
-        setError(issue instanceof Error ? issue.message : "Não foi possível carregar este perfil.");
-      } finally {
-        setReady(true);
-      }
+      })();
     });
     return () => { cancelled = true; };
   }, [artistId]);
@@ -43,7 +45,7 @@ export default function ArtistPublicProfile({ artistId }: { artistId: string }) 
         <section className="max-w-lg rounded-[24px] bg-white p-8 text-center shadow-lg">
           {error && <Toast type="error" message={error} />}
           <h1 className="mt-3 text-2xl font-bold">Perfil não encontrado</h1>
-          <p className="mt-2 text-sm text-[#5f586d]">Este perfil não está disponível neste navegador.</p>
+          <p className="mt-2 text-sm text-[#5f586d]">Este perfil não foi encontrado no PayArt.</p>
           <Link href="/artistas" className="mt-5 inline-flex rounded-xl bg-[#5c2df2] px-5 py-3 font-bold text-white">Conhecer artistas</Link>
         </section>
       </main>
@@ -55,12 +57,10 @@ export default function ArtistPublicProfile({ artistId }: { artistId: string }) 
       <div className="mx-auto max-w-6xl">
         <Link href="/artistas" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#5c2df2]"><ArrowLeft size={17} /> Todos os artistas</Link>
         <section className="overflow-hidden rounded-[28px] border border-black/5 bg-white shadow-lg">
-          <div role={artist.banner ? "img" : undefined} aria-label={artist.banner ? `Banner de ${artist.name}` : undefined} className="h-44 bg-gradient-to-r from-[#5c2df2] via-[#a45be8] to-[#ffbde7] bg-cover bg-center sm:h-64" style={artist.banner ? { backgroundImage: `url("${artist.banner}")` } : undefined} />
+          <MediaImage src={artist.banner} alt={`Banner de ${artist.name}`} objectPosition={`${artist.bannerPosition.x}% ${artist.bannerPosition.y}%`} className="h-44 bg-gradient-to-r from-[#5c2df2] via-[#a45be8] to-[#ffbde7] sm:h-64" />
           <div className="px-6 pb-8 sm:px-10">
-            <div className="-mt-12 grid h-24 w-24 place-items-center overflow-hidden rounded-full border-4 border-white bg-[#eee8ff] text-[#5c2df2] sm:h-28 sm:w-28">
-              {artist.avatar ? (
-                <div role="img" aria-label={`Foto de ${artist.name}`} className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url("${artist.avatar}")` }} />
-              ) : <UserRound size={36} />}
+            <div className="-mt-12 h-24 w-24 rounded-full border-4 border-white bg-white text-[#5c2df2] sm:h-28 sm:w-28">
+              <MediaImage src={artist.avatar} alt={`Foto de ${artist.name}`} objectPosition={`${artist.avatarPosition.x}% ${artist.avatarPosition.y}%`} className="h-full w-full rounded-full" sizes="112px" fallback={<UserRound className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" size={36} />} />
             </div>
             <p className="mt-5 text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Artista independente</p>
             <h1 className="mt-2 text-4xl font-extrabold tracking-[-0.06em]">{artist.name}</h1>
@@ -85,7 +85,7 @@ export default function ArtistPublicProfile({ artistId }: { artistId: string }) 
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {artworks.map((artwork) => (
                 <Link key={artwork.id} href={`/obras/${encodeURIComponent(artwork.id)}`} className="group overflow-hidden rounded-[22px] border border-black/5 bg-white/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                  <div role="img" aria-label={artwork.title} className="h-52 bg-gradient-to-br from-[#eee8ff] to-[#f8e8f5] bg-cover bg-center" style={artwork.image ? { backgroundImage: `url("${artwork.image}")` } : undefined} />
+                  <MediaImage src={artwork.image} alt={artwork.title} className="aspect-[4/3] bg-white" imageClassName="object-contain p-3 transition duration-500 group-hover:scale-[1.02]" sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw" />
                   <div className="p-5">
                     <p className="text-xs font-bold text-[#5c2df2]">{artwork.category}</p>
                     <h3 className="mt-2 text-xl font-bold group-hover:text-[#5c2df2]">{artwork.title}</h3>

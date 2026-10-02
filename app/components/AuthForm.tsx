@@ -62,7 +62,7 @@ export default function AuthForm({ mode, defaultRole = "buyer", redirectTo = "/p
       }
       setStatus("success");
       setMessage(isSignup ? "Cadastro realizado com sucesso!" : "Login realizado com sucesso!");
-      router.push(isSignup ? "/painel" : redirectTo);
+      router.push(redirectTo);
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Não foi possível concluir a operação.");
@@ -118,11 +118,14 @@ export default function AuthForm({ mode, defaultRole = "buyer", redirectTo = "/p
         {status === "loading" ? "Processando..." : isSignup ? "Criar conta" : "Entrar"}
       </button>
       <p className="text-xs leading-5 text-[#746e80]">
-        Protótipo: seus dados de cadastro ficam salvos somente neste navegador. Pagamentos ainda não são processados.
+        Sua senha é protegida pelo Firebase. Perfil, obras, favoritos, carrinho e conversas usam o Firestore para sincronizar entre dispositivos.
       </p>
       <p className="text-sm text-[#5f586d]">
         {isSignup ? "Já tem uma conta?" : "Ainda não tem conta?"}{" "}
-        <Link href={isSignup ? "/login" : "/cadastro"} className="font-bold text-[#5c2df2]">
+        <Link
+          href={isSignup ? `/login?next=${encodeURIComponent(redirectTo)}` : "/cadastro"}
+          className="font-bold text-[#5c2df2]"
+        >
           {isSignup ? "Entrar" : "Cadastrar"}
         </Link>
       </p>

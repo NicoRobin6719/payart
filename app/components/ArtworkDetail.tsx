@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
-import { ArrowLeft, Heart, MessageCircle, Star, UserRound } from "lucide-react";
+import { ArrowLeft, Heart, MessageCircle, ShoppingCart, Star, UserRound } from "lucide-react";
 import { Account, getCurrentAccount } from "./account-store";
 import { getPublicArtwork, PublicArtwork } from "./catalog-store";
 import {
@@ -15,6 +15,8 @@ import {
   toggleFavorite,
 } from "./community-store";
 import Toast from "./Toast";
+import { addToCart } from "./cart-store";
+import MediaImage from "./MediaImage";
 
 const cardClass = "rounded-[24px] border border-black/5 bg-white/80 p-6 shadow-sm";
 
@@ -31,6 +33,7 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
   const [rating, setRating] = useState(5);
   const [reviewText, setReviewText] = useState("");
   const [messageText, setMessageText] = useState("");
+  const [cartSaving, setCartSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "error" | "success"; message: string } | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -38,30 +41,35 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
+      void (async () => {
       try {
         const currentAccount = getCurrentAccount();
-        const foundArtwork = getPublicArtwork(artworkId);
-        setAccount(currentAccount);
+        const foundArtwork = await getPublicArtwork(artworkId);
+        const signedInAccount = await currentAccount;
+        if (cancelled) return;
+        setAccount(signedInAccount);
         setArtwork(foundArtwork);
         if (foundArtwork) {
-          const loadedReviews = getReviews(foundArtwork.id);
+          const loadedReviews = await getReviews(foundArtwork.id);
+          if (cancelled) return;
           setReviews(loadedReviews);
-          const ownReview = currentAccount
-            ? loadedReviews.find((review) => review.accountId === currentAccount.id)
+          const ownReview = signedInAccount
+            ? loadedReviews.find((review) => review.accountId === signedInAccount.id)
             : undefined;
           if (ownReview) {
             setRating(ownReview.rating);
             setReviewText(ownReview.text);
           }
         }
-        if (currentAccount && foundArtwork) {
-          setFavorite(getFavoriteIds(currentAccount.id).includes(foundArtwork.id));
+        if (signedInAccount && foundArtwork) {
+          setFavorite((await getFavoriteIds(signedInAccount.id)).includes(foundArtwork.id));
         }
       } catch (error) {
-        setFeedback({ type: "error", message: error instanceof Error ? error.message : "Não foi possível carregar esta obra." });
+        if (!cancelled) setFeedback({ type: "error", message: error instanceof Error ? error.message : "Não foi possível carregar esta obra." });
       } finally {
-        setReady(true);
+        if (!cancelled) setReady(true);
       }
+      })();
     });
     return () => { cancelled = true; };
   }, [artworkId]);
@@ -71,35 +79,35 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
     router.push(`/login?next=${next}`);
   }
 
-  function handleFavorite() {
+  async function handleFavorite() {
     if (!account) {
       promptLogin();
       return;
     }
     try {
-      setFavorite(toggleFavorite(account.id, artworkId));
+      setFavorite(await toggleFavorite(account.id, artworkId));
       setFeedback({ type: "success", message: favorite ? "Obra removida dos favoritos." : "Obra adicionada aos favoritos." });
     } catch (error) {
       setFeedback({ type: "error", message: error instanceof Error ? error.message : "Não foi possível atualizar seus favoritos." });
     }
   }
 
-  function handleReview(event: FormEvent<HTMLFormElement>) {
+  async function handleReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!account) {
       promptLogin();
       return;
     }
     try {
-      saveReview(account, artworkId, rating, reviewText);
-      setReviews(getReviews(artworkId));
+      await saveReview(account, artworkId, rating, reviewText);
+      setReviews(await getReviews(artworkId));
       setFeedback({ type: "success", message: "Sua avaliação foi publicada." });
     } catch (error) {
       setFeedback({ type: "error", message: error instanceof Error ? error.message : "Não foi possível publicar sua avaliação." });
     }
   }
 
-  function handleMessage(event: FormEvent<HTMLFormElement>) {
+  async function handleMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!account) {
       promptLogin();
@@ -107,12 +115,29 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
     }
     if (!artwork) return;
     try {
-      sendMessage(account, artwork, messageText);
+      await sendMessage(account, artwork, messageText);
       setMessageText("");
       setFeedback({ type: "success", message: "Mensagem enviada. Você pode acompanhar a conversa na sua caixa de mensagens." });
       router.push("/mensagens");
     } catch (error) {
       setFeedback({ type: "error", message: error instanceof Error ? error.message : "Não foi possível enviar sua mensagem." });
+    }
+  }
+
+  async function handleAddToCart() {
+    if (!account) {
+      promptLogin();
+      return;
+    }
+    if (!artwork) return;
+    setCartSaving(true);
+    try {
+      await addToCart(account, artwork);
+      setFeedback({ type: "success", message: "Obra adicionada ao seu carrinho." });
+    } catch (error) {
+      setFeedback({ type: "error", message: error instanceof Error ? error.message : "Não foi possível adicionar ao carrinho." });
+    } finally {
+      setCartSaving(false);
     }
   }
 
@@ -144,11 +169,11 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
         <Link href="/explorar" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#5c2df2]"><ArrowLeft size={17} /> Voltar para explorar</Link>
         {feedback && <div className="mb-5"><Toast type={feedback.type} message={feedback.message} /></div>}
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-          <div
-            role="img"
-            aria-label={`Imagem da obra ${artwork.title}`}
-            className="min-h-72 rounded-[28px] bg-gradient-to-br from-[#eee8ff] via-[#f8e8f5] to-[#f3f0ee] bg-cover bg-center shadow-lg sm:min-h-[520px]"
-            style={artwork.image ? { backgroundImage: `url("${artwork.image}")` } : undefined}
+          <MediaImage
+            src={artwork.image}
+            alt={`Imagem da obra ${artwork.title}`}
+            className="min-h-72 rounded-[28px] bg-white shadow-lg sm:min-h-[520px]"
+            imageClassName="object-contain p-3"
           />
           <section className={`${cardClass} flex flex-col justify-center`}>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">{artwork.category}</p>
@@ -166,6 +191,20 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
             <button onClick={handleFavorite} className={`mt-6 inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-bold transition ${favorite ? "border-pink-200 bg-pink-50 text-pink-700" : "border-black/10 hover:bg-black/5"}`}>
               <Heart size={18} fill={favorite ? "currentColor" : "none"} /> {favorite ? "Salva nos favoritos" : "Adicionar aos favoritos"}
             </button>
+            {artwork.artistId && !ownArtwork && account?.role !== "artist" && (
+              <button onClick={() => void handleAddToCart()} disabled={cartSaving} className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border border-[#5c2df2]/20 px-5 py-3 text-sm font-bold text-[#5c2df2] hover:bg-[#f4efff] disabled:opacity-60">
+                <ShoppingCart size={18} /> {cartSaving ? "Adicionando..." : "Adicionar ao carrinho"}
+              </button>
+            )}
+            {artwork.artistId && !ownArtwork && (
+              <button
+                type="button"
+                onClick={() => router.push(`/checkout?obra=${encodeURIComponent(artwork.id)}`)}
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#5c2df2] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#4a20d4]"
+              >
+                Comprar agora
+              </button>
+            )}
           </section>
         </div>
 
