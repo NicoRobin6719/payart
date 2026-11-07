@@ -55,16 +55,16 @@ export default function CartPanel({ account }: { account: Account }) {
   return (
     <section>
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Suas escolhas</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Suas escolhas</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.05em]">Carrinho</h1>
-        <p className="mt-2 text-sm text-[#5f586d]">Escolha quais obras deseja incluir neste checkout.</p>
+        <p className="mt-2 text-sm text-[#475569]">Escolha quais obras deseja incluir neste checkout.</p>
       </div>
       {error && <div className="mb-4"><Toast type="error" message={error} /></div>}
       {items.length === 0 ? (
         <div className="rounded-[24px] border border-black/5 bg-white p-8 text-center">
           <h2 className="text-xl font-bold">Seu carrinho está vazio</h2>
-          <p className="mt-2 text-sm text-[#5f586d]">Adicione obras publicadas para encontrá-las aqui.</p>
-          <Link href="/explorar" className="mt-5 inline-flex rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">Explorar obras</Link>
+          <p className="mt-2 text-sm text-[#475569]">Adicione obras publicadas para encontrá-las aqui.</p>
+          <Link href="/explorar" className="mt-5 inline-flex rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">Explorar obras</Link>
         </div>
       ) : (
         <div className="grid items-start gap-5 lg:grid-cols-[1fr_320px]">
@@ -75,7 +75,7 @@ export default function CartPanel({ account }: { account: Account }) {
                 checked={allSelected}
                 onChange={toggleSelectAll}
                 aria-label="Selecionar todas as obras do carrinho"
-                className="h-4 w-4 accent-[#5c2df2]"
+                className="h-4 w-4 accent-[#6d28d9]"
               />
               Selecionar todas as obras ({items.length})
             </label>
@@ -88,13 +88,13 @@ export default function CartPanel({ account }: { account: Account }) {
                     checked={selectedItemIds === null || selectedItemIds.has(item.id)}
                     onChange={() => toggleSelection(item.id)}
                     aria-label={`Selecionar ${item.title}`}
-                    className="h-4 w-4 accent-[#5c2df2]"
+                    className="h-4 w-4 accent-[#6d28d9]"
                   />
                 </label>
                 <MediaImage src={item.image} alt={item.title} className="h-24 w-24 shrink-0 rounded-xl bg-white" imageClassName="object-contain p-1" sizes="96px" />
                 <div className="min-w-0 flex-1">
-                  <Link href={`/obras/${encodeURIComponent(item.id)}`} className="font-bold hover:text-[#5c2df2]">{item.title}</Link>
-                  <p className="mt-1 text-sm text-[#5f586d]">{item.artist}</p>
+                  <Link href={`/obras/${encodeURIComponent(item.id)}`} className="font-bold hover:text-[#6d28d9]">{item.title}</Link>
+                  <p className="mt-1 text-sm text-[#475569]">{item.artist}</p>
                   <p className="mt-2 font-bold">{formatPrice(item.price)}</p>
                   <button onClick={() => void handleRemove(item.id)} className="mt-2 text-xs font-semibold text-red-700">Remover</button>
                 </div>
@@ -112,12 +112,12 @@ export default function CartPanel({ account }: { account: Account }) {
             {selectedItems.length > 0 ? (
               <Link
                 href={`/checkout?itens=${encodeURIComponent(selectedItems.map((item) => item.id).join(","))}`}
-                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#5c2df2] px-4 py-3 text-sm font-bold text-white"
+                className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#6d28d9] px-4 py-3 text-sm font-bold text-white"
               >
                 Ir para checkout ({selectedItems.length})
               </Link>
             ) : (
-              <button type="button" disabled className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#5c2df2] px-4 py-3 text-sm font-bold text-white opacity-50">
+              <button type="button" disabled className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-[#6d28d9] px-4 py-3 text-sm font-bold text-white opacity-50">
                 Selecione ao menos uma obra
               </button>
             )}

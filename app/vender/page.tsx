@@ -40,8 +40,8 @@ export default function VenderPage() {
 
   if (!ready) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f3f0ee] px-6">
-        <p role={error ? "alert" : "status"} className="text-center text-sm text-[#5f586d]">
+      <main className="grid min-h-screen place-items-center bg-[#ffffff] px-6">
+        <p role={error ? "alert" : "status"} className="text-center text-sm text-[#475569]">
           {error || "Verificando sua conta..."}
         </p>
       </main>
@@ -54,7 +54,7 @@ export default function VenderPage() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="mt-10 inline-flex rounded-xl bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-7 py-4 font-bold text-white"
+          className="mt-10 inline-flex rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-7 py-4 font-bold text-white"
         >
           Tentar novamente
         </button>
@@ -71,7 +71,7 @@ export default function VenderPage() {
       >
         <Link
           href="/cadastro?perfil=artista"
-          className="mt-10 inline-flex rounded-xl bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-7 py-4 font-bold text-white"
+          className="mt-10 inline-flex rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-7 py-4 font-bold text-white"
         >
           Criar conta de artista
         </Link>
@@ -84,8 +84,8 @@ export default function VenderPage() {
 
   if (account?.role === "artist") {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f3f0ee] px-6">
-        <p role="status" className="text-center text-sm text-[#5f586d]">
+      <main className="grid min-h-screen place-items-center bg-[#ffffff] px-6">
+        <p role="status" className="text-center text-sm text-[#475569]">
           Abrindo sua área de vendas...
         </p>
       </main>
@@ -100,7 +100,7 @@ export default function VenderPage() {
     >
       <Link
         href="/cadastro?perfil=artista"
-        className="mt-10 inline-flex rounded-xl bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-7 py-4 font-bold text-white"
+        className="mt-10 inline-flex rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-7 py-4 font-bold text-white"
       >
         Quero começar
       </Link>

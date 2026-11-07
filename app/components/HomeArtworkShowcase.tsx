@@ -62,10 +62,10 @@ export default function HomeArtworkShowcase() {
               key={artwork?.id ?? "empty-gallery"}
               src={artwork?.image}
               alt={artwork?.title ?? "Obras publicadas na galeria PayArt"}
-              className="h-[350px] bg-gradient-to-br from-[#eee8ff] via-[#f8e8f5] to-[#f3f0ee] sm:h-[460px]"
+              className="h-[350px] bg-gradient-to-br from-[#f3e8ff] via-[#f8e8f5] to-[#ffffff] sm:h-[460px]"
               imageClassName="object-contain p-3 transition duration-500 group-hover:scale-[1.03]"
               sizes="(min-width: 1024px) 580px, 100vw"
-              fallback={<Palette className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[#5c2df2]/50" size={60} strokeWidth={1.2} />}
+              fallback={<Palette className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-[#6d28d9]/50" size={60} strokeWidth={1.2} />}
             />
           </Link>
           {artworks.length > 1 && (
@@ -74,7 +74,7 @@ export default function HomeArtworkShowcase() {
                 type="button"
                 aria-label="Obra anterior"
                 onClick={showPrevious}
-                className="absolute left-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/70 bg-white/95 text-[#5c2df2] shadow-lg transition hover:scale-105 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5c2df2] sm:left-5 sm:h-12 sm:w-12"
+                className="absolute left-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/70 bg-white/95 text-[#6d28d9] shadow-lg transition hover:scale-105 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6d28d9] sm:left-5 sm:h-12 sm:w-12"
               >
                 <ArrowLeft size={20} />
               </button>
@@ -82,7 +82,7 @@ export default function HomeArtworkShowcase() {
                 type="button"
                 aria-label="Próxima obra"
                 onClick={showNext}
-                className="absolute right-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/70 bg-white/95 text-[#5c2df2] shadow-lg transition hover:scale-105 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5c2df2] sm:right-5 sm:h-12 sm:w-12"
+                className="absolute right-3 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-white/70 bg-white/95 text-[#6d28d9] shadow-lg transition hover:scale-105 hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#6d28d9] sm:right-5 sm:h-12 sm:w-12"
               >
                 <ArrowRight size={20} />
               </button>
@@ -108,7 +108,7 @@ export default function HomeArtworkShowcase() {
       </div>
 
       <div aria-live="polite" className="absolute -bottom-6 -left-3 max-w-[calc(100%-1rem)] rounded-2xl border border-white/60 bg-white/95 p-4 shadow-xl backdrop-blur-md sm:-left-8">
-        <p className="text-xs text-[#5f586d]">{artwork ? "Obra em destaque" : "Galeria PayArt"}</p>
+        <p className="text-xs text-[#475569]">{artwork ? "Obra em destaque" : "Galeria PayArt"}</p>
         <p className="mt-1 truncate font-bold">
           {artwork ? artwork.title : "Sua arte pode estar aqui"}
         </p>
@@ -122,7 +122,7 @@ export default function HomeArtworkShowcase() {
         className="absolute -right-2 -top-5 inline-flex items-center gap-2 rounded-2xl border border-white/60 bg-white/95 p-4 text-sm font-bold shadow-xl backdrop-blur-md transition hover:-translate-y-0.5 sm:-right-7"
       >
         {artwork ? "Ver galeria" : "Começar a publicar"}
-        <ArrowUpRight size={16} className="text-[#5c2df2]" />
+        <ArrowUpRight size={16} className="text-[#6d28d9]" />
       </Link>
       {error && <div className="absolute inset-x-3 top-full mt-10"><Toast type="error" message={error} /></div>}
     </div>

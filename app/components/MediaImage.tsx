@@ -11,6 +11,7 @@ type MediaImageProps = {
   fallback?: ReactNode;
   sizes?: string;
   objectPosition?: string;
+  imageFit?: "cover" | "contain";
 };
 
 export default function MediaImage({
@@ -21,12 +22,13 @@ export default function MediaImage({
   fallback,
   sizes = "100vw",
   objectPosition,
+  imageFit = "cover",
 }: MediaImageProps) {
   const [failedImage, setFailedImage] = useState<{ src: string; failed: boolean }>({ src: "", failed: false });
   const hasImage = Boolean(src && (failedImage.src !== src || !failedImage.failed));
 
   return (
-    <div className={`relative overflow-hidden bg-gradient-to-br from-[#eee8ff] via-[#f8e8f5] to-[#f3f0ee] ${className}`}>
+    <div className={`relative overflow-hidden bg-gradient-to-br from-[#f3e8ff] via-[#f8e8f5] to-[#ffffff] ${className}`}>
       {hasImage && src ? (
         <Image
           src={src}
@@ -35,7 +37,7 @@ export default function MediaImage({
           sizes={sizes}
           unoptimized
           className={imageClassName}
-          style={objectPosition ? { objectPosition } : undefined}
+          style={{ objectFit: imageFit, ...(objectPosition ? { objectPosition } : {}) }}
           onError={() => setFailedImage({ src, failed: true })}
         />
       ) : src && failedImage.src === src && failedImage.failed ? (

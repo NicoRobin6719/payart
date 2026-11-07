@@ -60,21 +60,21 @@ export default function MessagesCenter({ account: accountProp }: { account?: Acc
   }
 
   if (!ready || !account) {
-    return <p role={error ? "alert" : "status"} className="py-8 text-sm text-[#5f586d]">{error || "Carregando mensagens..."}</p>;
+    return <p role={error ? "alert" : "status"} className="py-8 text-sm text-[#475569]">{error || "Carregando mensagens..."}</p>;
   }
 
   return (
     <section>
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Comunicação</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Comunicação</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.05em]">Mensagens</h1>
-        <p className="mt-2 text-sm text-[#5f586d]">Converse sobre obras diretamente com artistas e interessados.</p>
+        <p className="mt-2 text-sm text-[#475569]">Converse sobre obras diretamente com artistas e interessados.</p>
       </div>
       {error && <div className="mb-4"><Toast type="error" message={error} /></div>}
       {conversations.length === 0 ? (
         <div className="rounded-[24px] border border-black/5 bg-white/80 p-8 text-center">
           <h2 className="text-xl font-bold">Nenhuma conversa ainda</h2>
-          <p className="mt-2 text-sm text-[#5f586d]">As conversas sobre obras aparecerão aqui.</p>
+          <p className="mt-2 text-sm text-[#475569]">As conversas sobre obras aparecerão aqui.</p>
         </div>
       ) : (
         <div className="grid min-h-[440px] overflow-hidden rounded-[24px] border border-black/5 bg-white/80 shadow-sm md:grid-cols-[260px_1fr]">
@@ -83,7 +83,7 @@ export default function MessagesCenter({ account: accountProp }: { account?: Acc
               <button key={conversation.id} onClick={() => setSelectedId(conversation.id)} aria-current={activeConversation?.id === conversation.id ? "true" : undefined} className={`mb-2 block w-full rounded-xl p-3 text-left transition ${activeConversation?.id === conversation.id ? "bg-[#f4efff]" : "hover:bg-black/5"}`}>
                 <span className="block truncate text-sm font-bold">{conversation.otherName}</span>
                 <span className="mt-1 block truncate text-xs text-[#746e80]">{conversation.artworkTitle}</span>
-                <span className="mt-1 block truncate text-xs text-[#5f586d]">{conversation.messages.at(-1)?.text}</span>
+                <span className="mt-1 block truncate text-xs text-[#475569]">{conversation.messages.at(-1)?.text}</span>
               </button>
             ))}
           </nav>
@@ -98,7 +98,7 @@ export default function MessagesCenter({ account: accountProp }: { account?: Acc
                   const isOwn = message.fromId === account.id;
                   return (
                     <div key={message.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-                      <article className={`max-w-[85%] rounded-2xl px-4 py-3 ${isOwn ? "bg-[#5c2df2] text-white" : "bg-[#f3f0ee] text-[#17131f]"}`}>
+                      <article className={`max-w-[85%] rounded-2xl px-4 py-3 ${isOwn ? "bg-[#6d28d9] text-white" : "bg-[#ffffff] text-[#17131f]"}`}>
                         <p className="text-xs font-bold">{message.fromName}</p>
                         <p className="mt-1 whitespace-pre-wrap text-sm leading-6">{message.text}</p>
                         <time dateTime={message.sentAt} className={`mt-2 block text-right text-[10px] ${isOwn ? "text-white/70" : "text-[#746e80]"}`}>{new Date(message.sentAt).toLocaleString("pt-BR")}</time>
@@ -110,8 +110,8 @@ export default function MessagesCenter({ account: accountProp }: { account?: Acc
               <form onSubmit={handleReply} className="border-t border-black/5 p-4">
                 <label htmlFor="message-reply" className="sr-only">Escreva uma resposta</label>
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <input id="message-reply" required minLength={2} maxLength={1000} value={reply} onChange={(event) => setReply(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-black/10 px-4 py-3 text-sm outline-none focus:border-[#5c2df2]" placeholder="Escreva uma mensagem..." />
-                  <button type="submit" className="rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">Enviar</button>
+                  <input id="message-reply" required minLength={2} maxLength={1000} value={reply} onChange={(event) => setReply(event.target.value)} className="min-w-0 flex-1 rounded-xl border border-black/10 px-4 py-3 text-sm outline-none focus:border-[#6d28d9]" placeholder="Escreva uma mensagem..." />
+                  <button type="submit" className="rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">Enviar</button>
                 </div>
               </form>
             </div>

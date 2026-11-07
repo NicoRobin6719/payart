@@ -1,6 +1,6 @@
 import { collection, getDocs, onSnapshot } from "firebase/firestore";
 import { firestore } from "./firebase-client";
-import { Artwork, getLocalArtistAccounts, localAccountUpdatedEvent } from "./account-store";
+import { Artwork, getLocalArtistAccounts, localAccountUpdatedEvent, markLocalArtistArtworkSold } from "./account-store";
 
 export type PublicArtwork = Artwork & {
   artistId: string | null;
@@ -20,11 +20,12 @@ function getLocalSoldArtworkIds() {
   return new Set(parsed);
 }
 
-export function markLocalArtworkSold(artworkId: string) {
+export function markLocalArtworkSold(artworkId: string, artistId: string) {
   const soldIds = getLocalSoldArtworkIds();
   if (soldIds.has(artworkId)) throw new Error("Esta obra já foi comprada e não está mais disponível.");
   soldIds.add(artworkId);
   window.localStorage.setItem(localSoldArtworksKey, JSON.stringify([...soldIds]));
+  markLocalArtistArtworkSold(artistId, artworkId);
   window.dispatchEvent(new CustomEvent(localAccountUpdatedEvent));
 }
 
@@ -71,6 +72,10 @@ function publicArtworkFromData(id: string, data: Record<string, unknown>): Publi
     artist: data.artist,
     artistEmail: "",
     isSold: data.isSold === true,
+    moderationStatus: data.moderationStatus === "pending" || data.moderationStatus === "rejected"
+      ? data.moderationStatus
+      : "approved",
+    ...(typeof data.moderationReason === "string" ? { moderationReason: data.moderationReason } : {}),
     ...(typeof data.shippingWidth === "number" && Number.isFinite(data.shippingWidth) && data.shippingWidth > 0
       ? { shippingWidth: data.shippingWidth } : {}),
     ...(typeof data.shippingHeight === "number" && Number.isFinite(data.shippingHeight) && data.shippingHeight > 0

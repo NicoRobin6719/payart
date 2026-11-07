@@ -10,47 +10,81 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == userId;
     }
 
+    function isActiveAccount() {
+      return signedIn();
+    }
+
     function isArtist(userId) {
-      return signedIn()
+      return isActiveAccount()
         && get(/databases/$(database)/documents/profiles/$(userId)).data.role == 'artist';
+    }
+
+    match /superModerators/{userId} {
+      allow read, write: if false;
+    }
+
+    match /moderators/{userId} {
+      allow read, write: if false;
+    }
+
+    match /accountControls/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if false;
     }
 
     match /profiles/{userId} {
       allow read: if true;
       allow create: if isOwner(userId)
+        && isActiveAccount()
         && request.resource.data.role in ['artist', 'buyer'];
       allow update: if isOwner(userId)
-        && request.resource.data.role == resource.data.role;
-      allow delete: if isOwner(userId);
+        && isActiveAccount()
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name',
+          'role',
+          'bio',
+          'avatar',
+          'banner',
+          'avatarPosition',
+          'bannerPosition',
+          'avatarFit',
+          'bannerFit'
+        ]);
+      allow delete: if isOwner(userId) && isActiveAccount();
 
       match /favorites/{artworkId} {
-        allow read, write: if isOwner(userId);
+        allow read, write: if isOwner(userId) && isActiveAccount();
       }
 
       match /cart/{artworkId} {
-        allow read: if isOwner(userId);
+        allow read: if isOwner(userId) && isActiveAccount();
         allow create, update: if isOwner(userId)
+          && isActiveAccount()
           && get(/databases/$(database)/documents/profiles/$(userId)).data.role == 'buyer'
           && request.resource.data.id == artworkId
           && request.resource.data.artistId is string
           && request.resource.data.artistId != userId
           && get(/databases/$(database)/documents/artworks/$(artworkId)).data.artistId
             == request.resource.data.artistId;
-        allow delete: if isOwner(userId);
+        allow delete: if isOwner(userId) && isActiveAccount();
       }
     }
 
     match /privateUsers/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read, write: if isOwner(userId) && isActiveAccount();
     }
 
     match /artworks/{artworkId} {
       allow read: if true;
-      allow create: if signedIn()
+      allow create: if isActiveAccount()
         && request.resource.data.artistId == request.auth.uid
+        && request.resource.data.moderationStatus == 'approved'
         && isArtist(request.auth.uid);
       allow update: if signedIn()
+        && isActiveAccount()
         && resource.data.artistId == request.auth.uid
+        && resource.data.get('isSold', false) != true
         && request.resource.data.artistId == resource.data.artistId
         && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly([
@@ -63,21 +97,28 @@ service cloud.firestore {
             'shippingWidth',
             'shippingHeight',
             'shippingLength',
-            'shippingWeight'
-          ]);
+            'shippingWeight',
+            'moderationStatus',
+            'moderationReason'
+          ])
+        && request.resource.data.moderationStatus == 'approved';
       allow update: if signedIn()
+        && isActiveAccount()
         && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'buyer'
         && resource.data.artistId != request.auth.uid
         && resource.data.get('isSold', false) != true
+
         && request.resource.data.isSold == true
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isSold']);
       allow delete: if signedIn()
+        && isActiveAccount()
         && resource.data.artistId == request.auth.uid;
     }
 
     match /reviews/{reviewId} {
       allow read: if true;
       allow create, update: if signedIn()
+        && isActiveAccount()
         && request.resource.data.accountId == request.auth.uid
         && request.resource.data.rating is int
         && request.resource.data.rating >= 1
@@ -85,18 +126,18 @@ service cloud.firestore {
         && request.resource.data.text is string
         && request.resource.data.text.size() >= 3
         && request.resource.data.text.size() <= 1000;
-      allow delete: if signedIn() && resource.data.accountId == request.auth.uid;
+      allow delete: if signedIn() && isActiveAccount() && resource.data.accountId == request.auth.uid;
     }
 
     match /conversations/{conversationId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.participants;
-      allow create: if signedIn()
+      allow read: if isActiveAccount() && request.auth.uid in resource.data.participants;
+      allow create: if isActiveAccount()
         && request.auth.uid in request.resource.data.participants
         && request.resource.data.participants.size() == 2
         && request.resource.data.artworkId is string
         && get(/databases/$(database)/documents/artworks/$(request.resource.data.artworkId)).data.artistId
           in request.resource.data.participants;
-      allow update: if signedIn()
+      allow update: if isActiveAccount()
         && request.auth.uid in resource.data.participants
         && request.resource.data.participants == resource.data.participants
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantNames'])
@@ -107,7 +148,7 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         function conversationIncludesUser() {
-          return signedIn()
+          return isActiveAccount()
             && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.participants;
         }
 
@@ -124,8 +165,8 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-      allow read: if signedIn() && request.auth.uid in resource.data.participants;
-      allow create: if signedIn()
+      allow read: if isActiveAccount() && request.auth.uid in resource.data.participants;
+      allow create: if isActiveAccount()
         && request.resource.data.buyerId == request.auth.uid
         && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'buyer'
         && request.resource.data.artistId != request.auth.uid
@@ -136,6 +177,7 @@ service cloud.firestore {
         && request.resource.data.artworkId is string
         && get(/databases/$(database)/documents/artworks/$(request.resource.data.artworkId)).data.artistId
           == request.resource.data.artistId
+
         && getAfter(/databases/$(database)/documents/artworks/$(request.resource.data.artworkId)).data.isSold == true
         && request.resource.data.amount
           == get(/databases/$(database)/documents/artworks/$(request.resource.data.artworkId)).data.price
@@ -161,6 +203,28 @@ service cloud.firestore {
         && request.resource.data.deliveryAddress.city.size() > 0
         && request.resource.data.deliveryAddress.state is string
         && request.resource.data.deliveryAddress.state.matches('^[A-Z]{2}$');
+      allow update, delete: if false;
+    }
+
+    match /demoWithdrawals/{withdrawalId} {
+      allow read: if isActiveAccount()
+        && resource.data.artistId == request.auth.uid;
+      allow create: if isActiveAccount()
+        && request.resource.data.artistId == request.auth.uid
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'artist'
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.amount <= 1000000
+        && request.resource.data.commissionRate == 25
+        && request.resource.data.status == 'simulated'
+        && request.resource.data.createdAt is string
+        && request.resource.data.keys().hasOnly([
+          'artistId',
+          'amount',
+          'commissionRate',
+          'status',
+          'createdAt'
+        ]);
       allow update, delete: if false;
     }
   }

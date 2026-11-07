@@ -70,8 +70,8 @@ export default function SiteHeader() {
       <nav className="flex items-center justify-between">
         <Link href="/" className="flex items-center" aria-label="PayArt - início">
           <span className="text-3xl font-extrabold tracking-[-0.08em]">
-            Pay<span className="text-[#5c2df2]">Art</span>
-            <span className="text-[#ff53c6]">.</span>
+            Pay<span className="text-[#6d28d9]">Art</span>
+            <span className="text-[#c2410c]">.</span>
           </span>
         </Link>
 
@@ -85,15 +85,15 @@ export default function SiteHeader() {
 
         <div className="hidden min-w-52 items-center justify-end gap-3 sm:flex">
           {authReady && isBuyer && (
-            <Link href="/checkout" aria-label={`Ir para o checkout; ${cartCount} ${cartCount === 1 ? "obra" : "obras"} no carrinho`} className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-black/10 bg-white/70 text-[#5c2df2] transition hover:bg-[#f4efff]">
+            <Link href="/checkout" aria-label={`Ir para o checkout; ${cartCount} ${cartCount === 1 ? "obra" : "obras"} no carrinho`} className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-black/10 bg-white/70 text-[#6d28d9] transition hover:bg-[#f4efff]">
               <ShoppingCart size={20} />
-              <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-[#ff53c6] px-1 text-[10px] font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>
+              <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-full bg-[#c2410c] px-1 text-[10px] font-bold text-white">{cartCount > 99 ? "99+" : cartCount}</span>
             </Link>
           )}
           {authReady && (isSignedIn ? (
             <Link
               href="/painel"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition hover:-translate-y-0.5"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition hover:-translate-y-0.5"
             >
               <UserRound size={17} />
               Meu perfil
@@ -103,7 +103,7 @@ export default function SiteHeader() {
               <Link href="/login" className="rounded-xl border border-black/10 bg-white/50 px-5 py-3 text-sm font-semibold transition hover:-translate-y-0.5">
                 Entrar
               </Link>
-              <Link href="/cadastro" className="rounded-xl bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition hover:-translate-y-0.5">
+              <Link href="/cadastro" className="rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-purple-500/20 transition hover:-translate-y-0.5">
                 Cadastrar
               </Link>
             </>

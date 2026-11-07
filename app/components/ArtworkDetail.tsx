@@ -142,17 +142,17 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
   }
 
   if (!ready) {
-    return <main className="grid min-h-screen place-items-center bg-[#f3f0ee]"><p role="status">Carregando detalhes da obra...</p></main>;
+    return <main className="grid min-h-screen place-items-center bg-[#ffffff]"><p role="status">Carregando detalhes da obra...</p></main>;
   }
 
   if (!artwork) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f3f0ee] px-6">
+      <main className="grid min-h-screen place-items-center bg-[#ffffff] px-6">
         <section className={`${cardClass} max-w-lg text-center`}>
           {feedback && <Toast type={feedback.type} message={feedback.message} />}
           <h1 className="mt-4 text-2xl font-bold">Obra não encontrada</h1>
-          <p className="mt-2 text-sm text-[#5f586d]">Ela pode ter sido removida ou o endereço está incorreto.</p>
-          <Link href="/explorar" className="mt-5 inline-flex rounded-xl bg-[#5c2df2] px-5 py-3 font-bold text-white">Voltar para explorar</Link>
+          <p className="mt-2 text-sm text-[#475569]">Ela pode ter sido removida ou o endereço está incorreto.</p>
+          <Link href="/explorar" className="mt-5 inline-flex rounded-xl bg-[#6d28d9] px-5 py-3 font-bold text-white">Voltar para explorar</Link>
         </section>
       </main>
     );
@@ -164,9 +164,9 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
   const ownArtwork = artwork.artistId === account?.id;
 
   return (
-    <main className="min-h-screen bg-[#f3f0ee] px-5 py-8 text-[#17131f] sm:px-8">
+    <main className="min-h-screen bg-[#ffffff] px-5 py-8 text-[#17131f] sm:px-8">
       <div className="mx-auto max-w-6xl">
-        <Link href="/explorar" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#5c2df2]"><ArrowLeft size={17} /> Voltar para explorar</Link>
+        <Link href="/explorar" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#6d28d9]"><ArrowLeft size={17} /> Voltar para explorar</Link>
         {feedback && <div className="mb-5"><Toast type={feedback.type} message={feedback.message} /></div>}
         <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <MediaImage
@@ -176,23 +176,23 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
             imageClassName="object-contain p-3"
           />
           <section className={`${cardClass} flex flex-col justify-center`}>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">{artwork.category}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">{artwork.category}</p>
             <h1 className="mt-3 text-4xl font-extrabold tracking-[-0.06em] sm:text-5xl">{artwork.title}</h1>
             <p className="mt-4 text-2xl font-bold">{formatPrice(artwork.price)}</p>
-            <p className="mt-6 leading-7 text-[#5f586d]">{artwork.description || "Obra original publicada por um artista independente."}</p>
+            <p className="mt-6 leading-7 text-[#475569]">{artwork.description || "Obra original publicada por um artista independente."}</p>
             <div className="mt-7 flex items-center gap-3 border-t border-black/5 pt-5">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-[#eee8ff] text-[#5c2df2]"><UserRound size={22} /></span>
+              <span className="grid h-11 w-11 place-items-center rounded-full bg-[#f3e8ff] text-[#6d28d9]"><UserRound size={22} /></span>
               <div>
                 <p className="text-xs text-[#746e80]">Obra de</p>
                 <p className="font-bold">{artwork.artist}</p>
               </div>
-              {artwork.artistId && <Link href={`/artistas/${encodeURIComponent(artwork.artistId)}`} className="ml-auto text-sm font-bold text-[#5c2df2]">Ver perfil</Link>}
+              {artwork.artistId && <Link href={`/artistas/${encodeURIComponent(artwork.artistId)}`} className="ml-auto text-sm font-bold text-[#6d28d9]">Ver perfil</Link>}
             </div>
-            <button onClick={handleFavorite} className={`mt-6 inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-bold transition ${favorite ? "border-pink-200 bg-pink-50 text-pink-700" : "border-black/10 hover:bg-black/5"}`}>
+            <button onClick={handleFavorite} className={`mt-6 inline-flex items-center justify-center gap-2 rounded-xl border px-5 py-3 text-sm font-bold transition ${favorite ? "border-orange-200 bg-orange-50 text-orange-700" : "border-black/10 hover:bg-black/5"}`}>
               <Heart size={18} fill={favorite ? "currentColor" : "none"} /> {favorite ? "Salva nos favoritos" : "Adicionar aos favoritos"}
             </button>
             {artwork.artistId && !ownArtwork && account?.role !== "artist" && (
-              <button onClick={() => void handleAddToCart()} disabled={cartSaving} className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border border-[#5c2df2]/20 px-5 py-3 text-sm font-bold text-[#5c2df2] hover:bg-[#f4efff] disabled:opacity-60">
+              <button onClick={() => void handleAddToCart()} disabled={cartSaving} className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl border border-[#6d28d9]/20 px-5 py-3 text-sm font-bold text-[#6d28d9] hover:bg-[#f4efff] disabled:opacity-60">
                 <ShoppingCart size={18} /> {cartSaving ? "Adicionando..." : "Adicionar ao carrinho"}
               </button>
             )}
@@ -200,7 +200,7 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
               <button
                 type="button"
                 onClick={() => router.push(`/checkout?obra=${encodeURIComponent(artwork.id)}`)}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#5c2df2] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#4a20d4]"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6d28d9] px-5 py-3.5 text-sm font-bold text-white transition hover:bg-[#4a20d4]"
               >
                 Comprar agora
               </button>
@@ -210,17 +210,17 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
 
         {artwork.artistId && !ownArtwork && (
           <form onSubmit={handleMessage} className={`${cardClass} mt-8`}>
-            <div className="flex items-center gap-2"><MessageCircle className="text-[#5c2df2]" size={20} /><h2 className="text-xl font-bold">Fale com o artista</h2></div>
-            <p className="mt-2 text-sm text-[#5f586d]">Tire dúvidas sobre “{artwork.title}”. A conversa ficará na sua caixa de mensagens.</p>
-            <textarea required minLength={2} maxLength={1000} value={messageText} onChange={(event) => setMessageText(event.target.value)} className="mt-4 min-h-24 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-[#5c2df2]" placeholder="Escreva sua mensagem..." />
-            <button type="submit" className="mt-3 rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">Enviar mensagem</button>
+            <div className="flex items-center gap-2"><MessageCircle className="text-[#6d28d9]" size={20} /><h2 className="text-xl font-bold">Fale com o artista</h2></div>
+            <p className="mt-2 text-sm text-[#475569]">Tire dúvidas sobre “{artwork.title}”. A conversa ficará na sua caixa de mensagens.</p>
+            <textarea required minLength={2} maxLength={1000} value={messageText} onChange={(event) => setMessageText(event.target.value)} className="mt-4 min-h-24 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none focus:border-[#6d28d9]" placeholder="Escreva sua mensagem..." />
+            <button type="submit" className="mt-3 rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">Enviar mensagem</button>
           </form>
         )}
 
         <section id="avaliacoes" className="mt-8 grid scroll-mt-8 gap-8 lg:grid-cols-[0.8fr_1.2fr]">
           <form onSubmit={handleReview} className={cardClass}>
             <h2 className="text-xl font-bold">Avalie esta obra</h2>
-            <p className="mt-2 text-sm text-[#5f586d]">Compartilhe sua opinião com a comunidade.</p>
+            <p className="mt-2 text-sm text-[#475569]">Compartilhe sua opinião com a comunidade.</p>
             <fieldset className="mt-4">
               <legend className="text-sm font-semibold">Sua nota</legend>
               <div role="radiogroup" aria-label="Sua nota" className="mt-2 flex gap-1">
@@ -233,9 +233,9 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
             </fieldset>
             <label className="mt-4 block text-sm font-semibold">
               Comentário
-              <textarea required minLength={3} maxLength={1000} value={reviewText} onChange={(event) => setReviewText(event.target.value)} className="mt-2 min-h-28 w-full rounded-xl border border-black/10 bg-white px-4 py-3 font-normal outline-none focus:border-[#5c2df2]" placeholder="O que achou desta obra?" />
+              <textarea required minLength={3} maxLength={1000} value={reviewText} onChange={(event) => setReviewText(event.target.value)} className="mt-2 min-h-28 w-full rounded-xl border border-black/10 bg-white px-4 py-3 font-normal outline-none focus:border-[#6d28d9]" placeholder="O que achou desta obra?" />
             </label>
-            <button type="submit" className="mt-4 rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">{account && reviews.some((review) => review.accountId === account.id) ? "Atualizar avaliação" : "Publicar avaliação"}</button>
+            <button type="submit" className="mt-4 rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">{account && reviews.some((review) => review.accountId === account.id) ? "Atualizar avaliação" : "Publicar avaliação"}</button>
             {account && <p className="mt-2 text-xs text-[#746e80]">Uma avaliação por conta; você pode atualizá-la depois.</p>}
           </form>
 
@@ -243,12 +243,12 @@ export default function ArtworkDetail({ artworkId }: { artworkId: string }) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold">Comentários e avaliações</h2>
-                <p className="mt-1 text-sm text-[#5f586d]">{reviews.length} {reviews.length === 1 ? "avaliação" : "avaliações"}</p>
+                <p className="mt-1 text-sm text-[#475569]">{reviews.length} {reviews.length === 1 ? "avaliação" : "avaliações"}</p>
               </div>
               {reviews.length > 0 && <p className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700"><Star size={16} fill="currentColor" /> {average.toFixed(1)} / 5</p>}
             </div>
             {reviews.length === 0 ? (
-              <p className="mt-6 rounded-xl bg-[#f3f0ee] p-5 text-sm text-[#5f586d]">Esta obra ainda não recebeu avaliações. Seja o primeiro a comentar.</p>
+              <p className="mt-6 rounded-xl bg-[#ffffff] p-5 text-sm text-[#475569]">Esta obra ainda não recebeu avaliações. Seja o primeiro a comentar.</p>
             ) : (
               <div className="mt-5 space-y-4">
                 {reviews.map((review) => <ReviewCard key={review.id} review={review} />)}
@@ -269,7 +269,7 @@ function ReviewCard({ review }: { review: Review }) {
         <time className="text-xs text-[#746e80]" dateTime={review.createdAt}>{new Date(review.createdAt).toLocaleDateString("pt-BR")}</time>
       </div>
       <p className="mt-1 text-amber-500" aria-label={`Nota ${review.rating} de 5`}>{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</p>
-      <p className="mt-2 text-sm leading-6 text-[#5f586d]">{review.text}</p>
+      <p className="mt-2 text-sm leading-6 text-[#475569]">{review.text}</p>
     </article>
   );
 }

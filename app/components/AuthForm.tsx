@@ -79,10 +79,10 @@ export default function AuthForm({ mode, defaultRole = "buyer", redirectTo = "/p
               ["buyer", "Quero comprar", "Descubra e salve obras de arte."],
               ["artist", "Quero vender", "Publique e gerencie suas obras."],
             ] as const).map(([value, title, description]) => (
-              <label key={value} className={`cursor-pointer rounded-2xl border p-4 transition ${role === value ? "border-[#5c2df2] bg-[#f4efff]" : "border-black/10 bg-white hover:border-[#5c2df2]/50"}`}>
+              <label key={value} className={`cursor-pointer rounded-2xl border p-4 transition ${role === value ? "border-[#6d28d9] bg-[#f4efff]" : "border-black/10 bg-white hover:border-[#6d28d9]/50"}`}>
                 <input className="sr-only" type="radio" name="role" value={value} checked={role === value} onChange={() => setRole(value)} />
                 <span className="block font-bold">{title}</span>
-                <span className="mt-1 block text-sm font-normal text-[#5f586d]">{description}</span>
+                <span className="mt-1 block text-sm font-normal text-[#475569]">{description}</span>
               </label>
             ))}
           </div>
@@ -114,17 +114,17 @@ export default function AuthForm({ mode, defaultRole = "buyer", redirectTo = "/p
           message={message}
         />
       )}
-      <button disabled={status === "loading" || status === "success"} className="w-full rounded-xl bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60" type="submit">
+      <button disabled={status === "loading" || status === "success"} className="w-full rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-6 py-3 font-bold text-white disabled:cursor-not-allowed disabled:opacity-60" type="submit">
         {status === "loading" ? "Processando..." : isSignup ? "Criar conta" : "Entrar"}
       </button>
       <p className="text-xs leading-5 text-[#746e80]">
         Sua senha é protegida pelo Firebase. Perfil, obras, favoritos, carrinho e conversas usam o Firestore para sincronizar entre dispositivos.
       </p>
-      <p className="text-sm text-[#5f586d]">
+      <p className="text-sm text-[#475569]">
         {isSignup ? "Já tem uma conta?" : "Ainda não tem conta?"}{" "}
         <Link
           href={isSignup ? `/login?next=${encodeURIComponent(redirectTo)}` : "/cadastro"}
-          className="font-bold text-[#5c2df2]"
+          className="font-bold text-[#6d28d9]"
         >
           {isSignup ? "Entrar" : "Cadastrar"}
         </Link>

@@ -35,9 +35,9 @@ export default function OrdersPanel({ account }: { account: Account }) {
   return (
     <section>
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Compras e vendas</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Compras e vendas</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.05em]">Pedidos</h1>
-        <p className="mt-2 text-sm text-[#5f586d]">
+        <p className="mt-2 text-sm text-[#475569]">
           {account.role === "artist" ? "Pedidos de obras do seu catálogo." : "Pedidos iniciados para suas obras favoritas."}
         </p>
       </div>
@@ -45,7 +45,7 @@ export default function OrdersPanel({ account }: { account: Account }) {
       {orders.length === 0 ? (
         <div className="rounded-[24px] border border-black/5 bg-white p-8 text-center">
           <h2 className="text-xl font-bold">Nenhum pedido por enquanto</h2>
-          <p className="mt-2 text-sm text-[#5f586d]">Quando um pedido for criado, ele aparecerá aqui.</p>
+          <p className="mt-2 text-sm text-[#475569]">Quando um pedido for criado, ele aparecerá aqui.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -54,7 +54,7 @@ export default function OrdersPanel({ account }: { account: Account }) {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="font-bold">{order.artworkTitle}</h2>
-                  <p className="mt-1 text-sm text-[#5f586d]">
+                  <p className="mt-1 text-sm text-[#475569]">
                     {account.role === "artist" ? `Comprador: ${order.buyerName}` : `Artista: ${order.artistName}`}
                   </p>
                 </div>
@@ -84,7 +84,7 @@ export default function OrdersPanel({ account }: { account: Account }) {
               {order.deliveryAddress && (
                 <div className="mt-3 border-t border-black/5 pt-3">
                   <h3 className="text-xs font-bold uppercase tracking-wide text-[#746e80]">Endereço de entrega</h3>
-                  <address className="mt-1 not-italic text-sm leading-5 text-[#5f586d]">
+                  <address className="mt-1 not-italic text-sm leading-5 text-[#475569]">
                     {order.deliveryAddress.recipient}<br />
                     {order.deliveryAddress.street}, {order.deliveryAddress.number}
                     {order.deliveryAddress.complement ? `, ${order.deliveryAddress.complement}` : ""}<br />

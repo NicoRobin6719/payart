@@ -9,7 +9,7 @@ type ShippingAddressFieldsProps = {
   required?: boolean;
 };
 
-const inputClass = "mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm font-normal outline-none transition focus:border-[#5c2df2] disabled:bg-[#f3f0ee]";
+const inputClass = "mt-1.5 w-full rounded-xl border border-black/10 bg-white px-3 py-2.5 text-sm font-normal outline-none transition focus:border-[#6d28d9] disabled:bg-[#ffffff]";
 
 export default function ShippingAddressFields({
   address,

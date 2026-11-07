@@ -48,19 +48,19 @@ export default function FavoritesPanel({ account }: { account: Account }) {
   return (
     <section>
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Sua coleção</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Sua coleção</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.05em]">Obras favoritas</h1>
-        <p className="mt-2 text-sm text-[#5f586d]">Obras que você guardou para encontrar depois.</p>
+        <p className="mt-2 text-sm text-[#475569]">Obras que você guardou para encontrar depois.</p>
       </div>
       {error && <div className="mb-5"><Toast type="error" message={error} /></div>}
       {!ready ? (
         <div role="status" className="grid gap-4 sm:grid-cols-2">{[0, 1].map((item) => <div key={item} className="h-40 animate-pulse rounded-2xl bg-white" />)}</div>
       ) : artworks.length === 0 ? (
         <div className="rounded-[24px] border border-black/5 bg-white/80 p-8 text-center">
-          <Heart className="mx-auto text-[#5c2df2]" size={30} />
+          <Heart className="mx-auto text-[#6d28d9]" size={30} />
           <h2 className="mt-4 text-xl font-bold">Sua lista está vazia</h2>
-          <p className="mt-2 text-sm text-[#5f586d]">Explore as obras e toque no coração para salvá-las aqui.</p>
-          <Link href="/explorar" className="mt-5 inline-flex rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">Explorar obras</Link>
+          <p className="mt-2 text-sm text-[#475569]">Explore as obras e toque no coração para salvá-las aqui.</p>
+          <Link href="/explorar" className="mt-5 inline-flex rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">Explorar obras</Link>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -69,9 +69,9 @@ export default function FavoritesPanel({ account }: { account: Account }) {
               <Link href={`/obras/${encodeURIComponent(artwork.id)}`} className="flex gap-4 p-4 transition hover:bg-[#faf9fc]">
                 <MediaImage src={artwork.image} alt={artwork.title} className="h-24 w-24 shrink-0 rounded-xl bg-white" imageClassName="object-contain p-1" sizes="96px" />
                 <div className="min-w-0">
-                  <p className="text-xs font-bold text-[#5c2df2]">{artwork.category}</p>
+                  <p className="text-xs font-bold text-[#6d28d9]">{artwork.category}</p>
                   <h2 className="mt-1 truncate font-bold">{artwork.title}</h2>
-                  <p className="mt-1 text-sm text-[#5f586d]">{artwork.artist}</p>
+                  <p className="mt-1 text-sm text-[#475569]">{artwork.artist}</p>
                   <p className="mt-2 text-sm font-bold">{formatPrice(artwork.price)}</p>
                 </div>
               </Link>

@@ -338,23 +338,23 @@ export default function Checkout({
   }
 
   if (!ready) {
-    return <main className="grid min-h-screen place-items-center bg-[#f3f0ee] px-6"><p role="status">Preparando seu fechamento de compra...</p></main>;
+    return <main className="grid min-h-screen place-items-center bg-[#ffffff] px-6"><p role="status">Preparando seu fechamento de compra...</p></main>;
   }
 
   if (wrongAccountRole) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f3f0ee] px-5 py-12 text-[#17131f]">
+      <main className="grid min-h-screen place-items-center bg-[#ffffff] px-5 py-12 text-[#17131f]">
         <section className="max-w-xl rounded-[28px] border border-black/5 bg-white p-8 text-center shadow-lg sm:p-10">
           <h1 className="text-3xl font-extrabold">Esta etapa é para compradores</h1>
-          <p className="mt-3 leading-6 text-[#5f586d]">Você está conectado como artista. Como os perfis de artista e comprador são separados, escolha sua conta de comprador ou crie uma agora. Depois do acesso, você voltará para informar o endereço e concluir o pedido.</p>
+          <p className="mt-3 leading-6 text-[#475569]">Você está conectado como artista. Como os perfis de artista e comprador são separados, escolha sua conta de comprador ou crie uma agora. Depois do acesso, você voltará para informar o endereço e concluir o pedido.</p>
           {error && <div className="mt-5"><Toast type="error" message={error} /></div>}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={() => void switchToBuyerAccount()} className="rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">
+            <button type="button" onClick={() => void switchToBuyerAccount()} className="rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">
               Entrar com conta de comprador
             </button>
             <Link
               href={`/cadastro?perfil=comprador&next=${encodeURIComponent(checkoutUrl)}`}
-              className="rounded-xl border border-[#5c2df2]/20 px-5 py-3 text-sm font-bold text-[#5c2df2]"
+              className="rounded-xl border border-[#6d28d9]/20 px-5 py-3 text-sm font-bold text-[#6d28d9]"
             >
               Criar conta de comprador
             </Link>
@@ -369,13 +369,13 @@ export default function Checkout({
 
   if (simulationComplete) {
     return (
-      <main className="min-h-screen bg-[#f3f0ee] px-5 py-12 text-[#17131f] sm:px-8">
+      <main className="min-h-screen bg-[#ffffff] px-5 py-12 text-[#17131f] sm:px-8">
         <section className="mx-auto max-w-2xl rounded-[28px] border border-black/5 bg-white p-8 shadow-lg sm:p-12">
           <div className="text-center">
             <CheckCircle2 className="mx-auto text-emerald-600" size={48} />
-            <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Simulação concluída</p>
+            <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Simulação concluída</p>
             <h1 className="mt-2 text-3xl font-extrabold">Pagamento fictício registrado</h1>
-            <p className="mt-3 text-[#5f586d]">Nenhum valor foi cobrado. Esta tela e os dados de pagamento são apenas demonstrativos.</p>
+            <p className="mt-3 text-[#475569]">Nenhum valor foi cobrado. Esta tela e os dados de pagamento são apenas demonstrativos.</p>
           </div>
           <div className="mt-6 rounded-2xl bg-[#f7f5fa] p-5 text-sm leading-6">
             <p><strong>Forma:</strong> {paymentMethod === "pix" ? "Pix demonstrativo" : paymentMethod === "credit-card" ? "Cartão demonstrativo" : "Boleto demonstrativo"}</p>
@@ -407,14 +407,14 @@ export default function Checkout({
               </button>
             </div>
           )}
-          <address className="mt-5 rounded-2xl bg-[#f7f5fa] p-4 text-left text-sm not-italic leading-6 text-[#5f586d]">
+          <address className="mt-5 rounded-2xl bg-[#f7f5fa] p-4 text-left text-sm not-italic leading-6 text-[#475569]">
             <strong className="text-[#17131f]">Entrega para {address.recipient}</strong><br />
             {address.street}, {address.number}{address.complement ? `, ${address.complement}` : ""}<br />
             {address.neighborhood} · {address.city}/{address.state}<br />
             CEP {address.postalCode}
           </address>
           <div className="mt-7 flex flex-wrap justify-center gap-3 print:hidden">
-            <Link href="/painel" className="rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">Ver meus pedidos</Link>
+            <Link href="/painel" className="rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">Ver meus pedidos</Link>
             <Link href="/explorar" className="rounded-xl border border-black/10 px-5 py-3 text-sm font-semibold">Voltar a explorar</Link>
           </div>
         </section>
@@ -423,28 +423,28 @@ export default function Checkout({
   }
 
   return (
-    <main className="min-h-screen bg-[#f3f0ee] px-5 py-8 text-[#17131f] sm:px-8 sm:py-12">
+    <main className="min-h-screen bg-[#ffffff] px-5 py-8 text-[#17131f] sm:px-8 sm:py-12">
       <div className="mx-auto max-w-6xl">
-        <Link href={artworkId ? `/obras/${encodeURIComponent(artworkId)}` : "/painel"} className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#5c2df2]">
+        <Link href={artworkId ? `/obras/${encodeURIComponent(artworkId)}` : "/painel"} className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#6d28d9]">
           <ArrowLeft size={17} /> {artworkId ? "Voltar para a obra" : "Voltar ao carrinho"}
         </Link>
         <div className="mb-8">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Finalizar compra</p>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Finalizar compra</p>
           <h1 className="mt-2 text-4xl font-extrabold tracking-[-0.06em]">Onde vamos entregar?</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#5f586d]">Confira suas obras e informe o endereço. O frete é uma estimativa fictícia para demonstração; nenhum pagamento real será processado.</p>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[#475569]">Confira suas obras e informe o endereço. O frete é uma estimativa fictícia para demonstração; nenhum pagamento real será processado.</p>
         </div>
         {error && <div className="mb-5"><Toast type="error" message={error} /></div>}
         {items.length === 0 ? (
           <section className="rounded-[24px] border border-black/5 bg-white p-8 text-center">
             <h2 className="text-xl font-bold">{artworkId ? "Obra indisponível" : "Seu carrinho está vazio"}</h2>
-            <p className="mt-2 text-sm text-[#5f586d]">{artworkId ? "Volte para explorar e escolha outra obra." : "Adicione obras ao carrinho antes de finalizar a compra."}</p>
-            <Link href="/explorar" className="mt-5 inline-flex rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">Explorar obras</Link>
+            <p className="mt-2 text-sm text-[#475569]">{artworkId ? "Volte para explorar e escolha outra obra." : "Adicione obras ao carrinho antes de finalizar a compra."}</p>
+            <Link href="/explorar" className="mt-5 inline-flex rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">Explorar obras</Link>
           </section>
         ) : (
           <form onSubmit={(event) => void handleSubmit(event)} className="grid items-start gap-6 lg:grid-cols-[1fr_360px]">
             <section className="rounded-[24px] border border-black/5 bg-white p-6 shadow-sm sm:p-8">
               <div className="mb-5 flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#f4efff] text-[#5c2df2]"><MapPin size={20} /></span>
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#f4efff] text-[#6d28d9]"><MapPin size={20} /></span>
                 <div>
                   <h2 className="text-xl font-bold">Endereço de entrega</h2>
                   <p className="mt-1 text-xs text-[#746e80]">Salvo no seu perfil privado para compras futuras.</p>
@@ -460,7 +460,7 @@ export default function Checkout({
                     <MediaImage src={item.image} alt={item.title} className="h-16 w-16 shrink-0 rounded-xl bg-white" imageClassName="object-contain p-1" sizes="64px" />
                     <div className="min-w-0">
                       <h3 className="truncate text-sm font-bold">{item.title}</h3>
-                      <p className="mt-1 text-xs text-[#5f586d]">por {item.artist}</p>
+                      <p className="mt-1 text-xs text-[#475569]">por {item.artist}</p>
                       <p className="mt-1 text-sm font-bold">{formatPrice(item.price)}</p>
                     </div>
                   </article>
@@ -473,7 +473,7 @@ export default function Checkout({
                   type="button"
                   onClick={() => void calculateShipping()}
                   disabled={calculatingShipping || saving || !/^\d{8}$/.test(destinationPostalCode)}
-                  className="mt-3 w-full rounded-xl border border-[#5c2df2]/30 px-4 py-2.5 text-sm font-bold text-[#5c2df2] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-3 w-full rounded-xl border border-[#6d28d9]/30 px-4 py-2.5 text-sm font-bold text-[#6d28d9] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {calculatingShipping ? "Calculando estimativa..." : "Estimar frete"}
                 </button>
@@ -534,7 +534,7 @@ export default function Checkout({
                 <span className="font-bold">{formatPrice(total.toFixed(2))}</span>
               </div>
               <p className="mt-4 text-xs leading-5 text-[#746e80]">Esta demonstração não se conecta a bancos ou provedores de pagamento e não cobra valores. Nunca informe dados reais de cartão.</p>
-              <button type="submit" disabled={saving || !selectionValid || !isCompleteDeliveryAddress(address) || !shippingReady} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#5c2df2] px-5 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="submit" disabled={saving || !selectionValid || !isCompleteDeliveryAddress(address) || !shippingReady} className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#6d28d9] px-5 py-3.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
                 <CreditCard size={17} /> {saving ? "Registrando simulação..." : "Testar pagamento fictício"}
               </button>
               {!isCompleteDeliveryAddress(address) && <p className="mt-2 text-center text-xs text-[#746e80]">Preencha o endereço para continuar.</p>}

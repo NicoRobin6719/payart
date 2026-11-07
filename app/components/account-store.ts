@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  onSnapshot,
   query,
   setDoc,
   where,
@@ -30,6 +31,8 @@ export type Artwork = {
   shippingHeight?: number;
   shippingLength?: number;
   shippingWeight?: number;
+  moderationStatus?: "pending" | "approved" | "rejected";
+  moderationReason?: string;
 };
 
 export type DeliveryAddress = {
@@ -44,6 +47,7 @@ export type DeliveryAddress = {
 };
 
 export type ImagePosition = { x: number; y: number };
+export type ImageFit = "cover" | "contain";
 
 const defaultImagePosition: ImagePosition = { x: 50, y: 50 };
 
@@ -69,13 +73,15 @@ export type Account = {
   banner: string;
   avatarPosition: ImagePosition;
   bannerPosition: ImagePosition;
+  avatarFit: ImageFit;
+  bannerFit: ImageFit;
   pixKey: string;
   deliveryAddress: DeliveryAddress;
   artworks: Artwork[];
   storageMode?: "local";
 };
 
-type PublicProfile = Pick<Account, "name" | "role" | "bio" | "avatar" | "banner" | "avatarPosition" | "bannerPosition">;
+type PublicProfile = Pick<Account, "name" | "role" | "bio" | "avatar" | "banner" | "avatarPosition" | "bannerPosition" | "avatarFit" | "bannerFit">;
 type PrivateProfile = Pick<Account, "email" | "phone" | "pixKey" | "deliveryAddress">;
 const localAccountPrefix = "payart:account:";
 const cloudAccountPrefix = "payart:cloud-account:";
@@ -98,7 +104,13 @@ function profileFromData(id: string, data: Record<string, unknown>): PublicProfi
     banner: typeof data.banner === "string" ? data.banner : "",
     avatarPosition: imagePositionFromData(data.avatarPosition),
     bannerPosition: imagePositionFromData(data.bannerPosition),
+    avatarFit: imageFitFromData(data.avatarFit),
+    bannerFit: imageFitFromData(data.bannerFit),
   };
+}
+
+function imageFitFromData(value: unknown): ImageFit {
+  return value === "contain" ? "contain" : "cover";
 }
 
 function imagePositionFromData(value: unknown): ImagePosition {
@@ -148,6 +160,10 @@ function artworkFromData(id: string, data: Record<string, unknown>): Artwork {
     description: typeof data.description === "string" ? data.description : "",
     image: typeof data.image === "string" ? data.image : "",
     isSold: data.isSold === true,
+    moderationStatus: data.moderationStatus === "pending" || data.moderationStatus === "rejected"
+      ? data.moderationStatus
+      : "approved",
+    ...(typeof data.moderationReason === "string" ? { moderationReason: data.moderationReason } : {}),
     ...(isPositiveNumber(data.shippingWidth) ? { shippingWidth: data.shippingWidth } : {}),
     ...(isPositiveNumber(data.shippingHeight) ? { shippingHeight: data.shippingHeight } : {}),
     ...(isPositiveNumber(data.shippingLength) ? { shippingLength: data.shippingLength } : {}),
@@ -220,6 +236,52 @@ export function getLocalArtistAccounts(): Account[] {
     .map((account) => ({ ...account, email: "", phone: "", pixKey: "", deliveryAddress: { ...emptyDeliveryAddress } }));
 }
 
+export function markLocalArtistArtworkSold(artistId: string, artworkId: string) {
+  const account = getLocalAccount(artistId);
+  if (!account || account.role !== "artist" || !account.artworks.some((artwork) => artwork.id === artworkId)) return;
+  saveLocalAccount({
+    ...account,
+    artworks: account.artworks.map((artwork) => (
+      artwork.id === artworkId ? { ...artwork, isSold: true } : artwork
+    )),
+  });
+}
+
+export function subscribeToArtistArtworks(
+  artistId: string,
+  onChange: (artworks: Artwork[]) => void,
+  onError: (error: Error) => void,
+) {
+  if (isLocalAccount(artistId)) {
+    const refresh = () => {
+      try {
+        onChange(getLocalAccount(artistId)?.artworks ?? []);
+      } catch (error) {
+        onError(error instanceof Error ? error : new Error("Não foi possível carregar as obras do artista."));
+      }
+    };
+    window.addEventListener(localAccountUpdatedEvent, refresh);
+    window.addEventListener("storage", refresh);
+    refresh();
+    return () => {
+      window.removeEventListener(localAccountUpdatedEvent, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }
+
+  return onSnapshot(
+    query(collection(firestore, "artworks"), where("artistId", "==", artistId)),
+    (snapshots) => {
+      try {
+        onChange(snapshots.docs.map((snapshot) => artworkFromData(snapshot.id, snapshot.data())));
+      } catch (error) {
+        onError(error instanceof Error ? error : new Error("Não foi possível carregar as obras do artista."));
+      }
+    },
+    (error) => onError(error),
+  );
+}
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => reject(new Error(message)), timeoutMs);
@@ -248,6 +310,11 @@ async function getArtistArtworks(artistId: string) {
 }
 
 async function getAccountById(id: string) {
+  const controlSnapshot = await getDoc(doc(firestore, "accountControls", id));
+  if (controlSnapshot.exists() && controlSnapshot.data().blocked === true) {
+    await firebaseSignOut(firebaseAuth);
+    throw new Error("Esta conta foi bloqueada pela moderação do PayArt. Entre em contato com o suporte.");
+  }
   const [profileSnapshot, privateSnapshot] = await withTimeout(
     Promise.all([
       getDoc(doc(firestore, "profiles", id)),
@@ -339,6 +406,8 @@ export async function createAccount(
     banner: "",
     avatarPosition: { ...defaultImagePosition },
     bannerPosition: { ...defaultImagePosition },
+    avatarFit: "cover",
+    bannerFit: "cover",
   };
   const privateProfile: PrivateProfile = {
     email: account.email.trim(),
@@ -420,7 +489,7 @@ async function saveArtworks(account: Account) {
   const existing = await getDocs(query(artworkCollection, where("artistId", "==", account.id)));
   const savedIds = new Set(account.artworks.map((artwork) => artwork.id));
   const writes = [
-    ...account.artworks.map((artwork) => ({
+    ...account.artworks.filter((artwork) => !artwork.isSold).map((artwork) => ({
       id: artwork.id,
       data: {
         title: artwork.title,
@@ -432,6 +501,8 @@ async function saveArtworks(account: Account) {
         ...(artwork.shippingHeight ? { shippingHeight: artwork.shippingHeight } : {}),
         ...(artwork.shippingLength ? { shippingLength: artwork.shippingLength } : {}),
         ...(artwork.shippingWeight ? { shippingWeight: artwork.shippingWeight } : {}),
+        moderationStatus: "approved",
+        moderationReason: "",
         artistId: account.id,
         artist: account.name,
       },
@@ -454,6 +525,11 @@ async function saveArtworks(account: Account) {
 }
 
 export async function updateAccount(updatedAccount: Account): Promise<Account> {
+  if (updatedAccount.storageMode === "local" || isLocalAccount(updatedAccount.id)) {
+    saveLocalAccount(updatedAccount);
+    return updatedAccount;
+  }
+
   const user = firebaseAuth.currentUser;
   if (!user || user.uid !== updatedAccount.id) {
     throw new Error("Sua sessão Firebase expirou. Entre novamente para salvar as alterações.");
@@ -469,6 +545,8 @@ export async function updateAccount(updatedAccount: Account): Promise<Account> {
         banner: updatedAccount.banner,
         avatarPosition: imagePositionFromData(updatedAccount.avatarPosition),
         bannerPosition: imagePositionFromData(updatedAccount.bannerPosition),
+        avatarFit: imageFitFromData(updatedAccount.avatarFit),
+        bannerFit: imageFitFromData(updatedAccount.bannerFit),
       }),
       setDoc(doc(firestore, "privateUsers", user.uid), {
         email: updatedAccount.email,

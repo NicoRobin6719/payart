@@ -79,10 +79,10 @@ export default function ExploreCatalog() {
     <>
       {error && <div className="mt-6"><Toast type="error" message={error} /></div>}
       {cartFeedback && (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#5c2df2]/15 bg-white p-3">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#6d28d9]/15 bg-white p-3">
           <Toast type={cartFeedback.includes("adicionada") ? "success" : "error"} message={cartFeedback} />
           {account?.role === "buyer" && cartArtworkIds.size > 0 && (
-            <Link href="/checkout" className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#5c2df2] px-4 py-2.5 text-sm font-bold text-white">
+            <Link href="/checkout" className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#6d28d9] px-4 py-2.5 text-sm font-bold text-white">
               <ShoppingCart size={17} /> Ir ao checkout ({cartArtworkIds.size})
             </Link>
           )}
@@ -96,7 +96,7 @@ export default function ExploreCatalog() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Ex.: pintura, Aline..."
-          className="mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-base font-normal outline-none transition focus:border-[#5c2df2]"
+          className="mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-base font-normal outline-none transition focus:border-[#6d28d9]"
         />
       </label>
       <fieldset className="mt-8">
@@ -110,8 +110,8 @@ export default function ExploreCatalog() {
               onClick={() => setCategory(item)}
               className={`rounded-full border px-5 py-3 text-sm font-semibold transition ${
                 category === item
-                  ? "border-transparent bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] text-white shadow-lg shadow-purple-500/20"
-                  : "border-black/10 bg-white/70 hover:border-[#5c2df2]/50 hover:bg-white"
+                  ? "border-transparent bg-gradient-to-r from-[#6d28d9] to-[#c2410c] text-white shadow-lg shadow-purple-500/20"
+                  : "border-black/10 bg-white/70 hover:border-[#6d28d9]/50 hover:bg-white"
               }`}
             >
               {item}
@@ -122,7 +122,7 @@ export default function ExploreCatalog() {
               type="button"
               aria-pressed="true"
               onClick={() => setCategory(category)}
-              className="rounded-full border border-transparent bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/20"
+              className="rounded-full border border-transparent bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-purple-500/20"
             >
               {category}
             </button>
@@ -134,7 +134,7 @@ export default function ExploreCatalog() {
           <h2 className="text-xl font-bold">Artistas encontrados</h2>
           <div className="mt-3 flex flex-wrap gap-2">
             {matchingArtists.map((artist) => (
-              <Link key={artist.id} href={`/artistas/${encodeURIComponent(artist.id)}`} className="rounded-full border border-[#5c2df2]/20 bg-white px-4 py-2 text-sm font-semibold text-[#5c2df2] hover:bg-[#f4efff]">
+              <Link key={artist.id} href={`/artistas/${encodeURIComponent(artist.id)}`} className="rounded-full border border-[#6d28d9]/20 bg-white px-4 py-2 text-sm font-semibold text-[#6d28d9] hover:bg-[#f4efff]">
                 {artist.name}
               </Link>
             ))}
@@ -159,13 +159,13 @@ export default function ExploreCatalog() {
           </h2>
           {allArtworks.length === 0 && !matchingQuery && category === "Todas" ? (
             <>
-              <p className="mt-3 text-[#5f586d]">As obras reais dos artistas aparecerão aqui assim que forem publicadas.</p>
-              <Link href="/cadastro?perfil=artista" className="mt-5 inline-flex rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">
+              <p className="mt-3 text-[#475569]">As obras reais dos artistas aparecerão aqui assim que forem publicadas.</p>
+              <Link href="/cadastro?perfil=artista" className="mt-5 inline-flex rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">
                 Criar perfil de artista e publicar
               </Link>
             </>
           ) : (
-            <p className="mt-3 text-[#5f586d]">Tente outro termo de busca ou selecione uma categoria diferente.</p>
+            <p className="mt-3 text-[#475569]">Tente outro termo de busca ou selecione uma categoria diferente.</p>
           )}
         </div>
       ) : ready ? (
@@ -176,11 +176,11 @@ export default function ExploreCatalog() {
                 <MediaImage src={artwork.image} alt={artwork.title} className="aspect-[4/3] bg-white" imageClassName="object-contain p-3 transition duration-500 group-hover:scale-[1.02]" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" />
               </Link>
               <div className="p-5">
-                <span className="text-xs font-bold text-[#5c2df2]">{artwork.category}</span>
-                <h2 className="mt-2 text-xl font-bold group-hover:text-[#5c2df2]">
+                <span className="text-xs font-bold text-[#6d28d9]">{artwork.category}</span>
+                <h2 className="mt-2 text-xl font-bold group-hover:text-[#6d28d9]">
                   <Link href={`/obras/${encodeURIComponent(artwork.id)}`}>{artwork.title}</Link>
                 </h2>
-                <p className="mt-2 text-sm text-[#5f586d]">{artwork.artist}</p>
+                <p className="mt-2 text-sm text-[#475569]">{artwork.artist}</p>
                 <div className="mt-5 flex items-center justify-between gap-3">
                   <p className="font-bold">R$ {Number(artwork.price).toFixed(2).replace(".", ",")}</p>
                   <button
@@ -192,7 +192,7 @@ export default function ExploreCatalog() {
                     className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition disabled:cursor-default ${
                       cartArtworkIds.has(artwork.id)
                         ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                        : "border-[#5c2df2]/20 bg-white text-[#5c2df2] hover:bg-[#f4efff] disabled:opacity-60"
+                        : "border-[#6d28d9]/20 bg-white text-[#6d28d9] hover:bg-[#f4efff] disabled:opacity-60"
                     }`}
                   >
                     <ShoppingCart size={19} aria-hidden="true" />

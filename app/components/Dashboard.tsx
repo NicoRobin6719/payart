@@ -17,13 +17,16 @@ import {
   ShoppingCart,
   Trash2,
   UserRound,
+  Wallet,
 } from "lucide-react";
 import {
   Account,
   Artwork,
+  ImageFit,
   ImagePosition,
   emptyDeliveryAddress,
   getCurrentAccount,
+  subscribeToArtistArtworks,
   signOut,
   updateAccount,
 } from "./account-store";
@@ -36,11 +39,12 @@ import CartPanel from "./CartPanel";
 import { ARTWORK_CATEGORIES, isArtworkCategory } from "./artwork-categories";
 import MediaImage from "./MediaImage";
 import ShippingAddressFields from "./ShippingAddressFields";
+import DemoEarningsPanel from "./DemoEarningsPanel";
 
-type Section = "overview" | "artworks" | "profile" | "payments" | "favorites" | "messages" | "orders" | "cart";
+type Section = "overview" | "artworks" | "profile" | "payments" | "earnings" | "favorites" | "messages" | "orders" | "cart";
 type Feedback = { type: "success" | "error"; message: string };
 
-const inputClass = "mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#5c2df2]";
+const inputClass = "mt-2 w-full rounded-xl border border-black/10 bg-white px-4 py-3 text-sm outline-none transition focus:border-[#6d28d9]";
 const cardClass = "rounded-[24px] border border-black/5 bg-white p-6 shadow-sm";
 
 function DisplayImage({
@@ -48,13 +52,15 @@ function DisplayImage({
   label,
   className = "",
   objectPosition,
+  imageFit,
 }: {
   src: string;
   label: string;
   className?: string;
   objectPosition?: string;
+  imageFit?: ImageFit;
 }) {
-  return <MediaImage src={src} alt={label} objectPosition={objectPosition} className={className} sizes="(min-width: 640px) 160px, 100vw" />;
+  return <MediaImage src={src} alt={label} objectPosition={objectPosition} imageFit={imageFit} className={className} sizes="(min-width: 640px) 160px, 100vw" />;
 }
 
 export default function Dashboard() {
@@ -65,17 +71,36 @@ export default function Dashboard() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [editingArtwork, setEditingArtwork] = useState<Artwork | null>(null);
 
+
   useEffect(() => {
     let cancelled = false;
+    let unsubscribeArtistArtworks = () => {};
     queueMicrotask(() => {
       if (cancelled) return;
       void (async () => {
       try {
         const currentAccount = await getCurrentAccount();
+        if (cancelled) return;
         if (!currentAccount) {
           router.replace("/login");
         } else {
           setAccount(currentAccount);
+          if (currentAccount.role === "artist") {
+            unsubscribeArtistArtworks = subscribeToArtistArtworks(
+              currentAccount.id,
+              (artworks) => {
+                setAccount((current) => current?.id === currentAccount.id
+                  ? { ...current, artworks }
+                  : current);
+                setEditingArtwork((current) => (
+                  current && artworks.some((artwork) => artwork.id === current.id && artwork.isSold)
+                    ? null
+                    : current
+                ));
+              },
+              (error) => setFeedback({ type: "error", message: error.message }),
+            );
+          }
           if (
             currentAccount.role === "artist"
             && new URLSearchParams(window.location.search).get("secao") === "obras"
@@ -99,11 +124,14 @@ export default function Dashboard() {
       } catch (error) {
         setFeedback({ type: "error", message: error instanceof Error ? error.message : "Não foi possível carregar sua conta." });
       } finally {
-        setReady(true);
+        if (!cancelled) setReady(true);
       }
       })();
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      unsubscribeArtistArtworks();
+    };
   }, [router]);
 
   async function saveAccount(nextAccount: Account, successMessage: string) {
@@ -132,8 +160,8 @@ export default function Dashboard() {
 
   if (!ready || !account) {
     return (
-      <main className="grid min-h-screen place-items-center bg-[#f3f0ee] px-6">
-        <p role={feedback ? "alert" : "status"} className="max-w-lg text-center text-sm text-[#5f586d]">
+      <main className="grid min-h-screen place-items-center bg-[#ffffff] px-6">
+        <p role={feedback ? "alert" : "status"} className="max-w-lg text-center text-sm text-[#475569]">
           {feedback?.message ?? "Carregando sua área PayArt..."}
         </p>
       </main>
@@ -150,16 +178,17 @@ export default function Dashboard() {
     ...(!isArtist ? [{ id: "cart" as const, label: "Carrinho", icon: ShoppingCart }] : []),
     { id: "profile", label: "Meu perfil", icon: UserRound },
     ...(isArtist ? [{ id: "payments" as const, label: "Pagamentos", icon: CreditCard }] : []),
+    ...(isArtist ? [{ id: "earnings" as const, label: "Vendas e saques", icon: Wallet }] : []),
   ];
 
   return (
-    <main className="min-h-screen bg-[#f3f0ee] text-[#17131f]">
+    <main className="min-h-screen bg-[#ffffff] text-[#17131f]">
       <header className="border-b border-black/5 bg-white/80">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
           <Link href="/" className="text-2xl font-extrabold tracking-[-0.08em]">
-            Pay<span className="text-[#5c2df2]">Art</span><span className="text-[#ff53c6]">.</span>
+            Pay<span className="text-[#6d28d9]">Art</span><span className="text-[#c2410c]">.</span>
           </Link>
-          <span className="hidden rounded-full bg-[#f4efff] px-4 py-2 text-xs font-bold text-[#5c2df2] sm:inline-flex">
+          <span className="hidden rounded-full bg-[#f4efff] px-4 py-2 text-xs font-bold text-[#6d28d9] sm:inline-flex">
             Área do {isArtist ? "artista" : "comprador"}
           </span>
           <button onClick={handleSignOut} className="inline-flex items-center gap-2 rounded-xl border border-black/10 px-4 py-2.5 text-sm font-semibold transition hover:bg-black/5">
@@ -172,9 +201,15 @@ export default function Dashboard() {
         <aside>
           <div className="mb-6 flex items-center gap-3">
             {account.avatar ? (
-              <DisplayImage src={account.avatar} label={`Foto de ${account.name}`} className="h-12 w-12 rounded-full bg-[#eee8ff]" />
+              <DisplayImage
+                src={account.avatar}
+                label={`Foto de ${account.name}`}
+                objectPosition={`${account.avatarPosition.x}% ${account.avatarPosition.y}%`}
+                imageFit={account.avatarFit}
+                className="h-12 w-12 rounded-full bg-[#f3e8ff]"
+              />
             ) : (
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-[#eee8ff] text-[#5c2df2]"><UserRound size={22} /></div>
+              <div className="grid h-12 w-12 place-items-center rounded-full bg-[#f3e8ff] text-[#6d28d9]"><UserRound size={22} /></div>
             )}
             <div className="min-w-0">
               <p className="truncate font-bold">{account.name}</p>
@@ -187,13 +222,13 @@ export default function Dashboard() {
                 key={id}
                 onClick={() => { setSection(id); setFeedback(null); }}
                 aria-current={section === id ? "page" : undefined}
-                className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${section === id ? "bg-[#5c2df2] text-white shadow-lg shadow-purple-500/20" : "text-[#5f586d] hover:bg-white"}`}
+                className={`flex shrink-0 items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-semibold transition ${section === id ? "bg-[#6d28d9] text-white shadow-lg shadow-purple-500/20" : "text-[#475569] hover:bg-white"}`}
               >
                 <Icon size={18} /> {label}
               </button>
             ))}
           </nav>
-          <p className="mt-8 hidden rounded-2xl border border-[#ffbde7] bg-white/70 p-4 text-xs leading-5 text-[#746e80] lg:block">
+          <p className="mt-8 hidden rounded-2xl border border-[#facc15] bg-white/70 p-4 text-xs leading-5 text-[#746e80] lg:block">
             {account.storageMode === "local"
               ? "Seu perfil está salvo apenas neste navegador. Para usar em outros dispositivos, é necessário configurar o Firestore."
               : "Seu perfil é sincronizado pelo Firebase. Nenhum pagamento é processado nesta versão."}
@@ -227,6 +262,8 @@ export default function Dashboard() {
           {section === "payments" && isArtist && (
             <PaymentSettings account={account} onSave={(updated) => saveAccount(updated, "Chave Pix atualizada.")} />
           )}
+          {section === "earnings" && isArtist && <DemoEarningsPanel account={account} />}
+
         </section>
       </div>
     </main>
@@ -237,39 +274,39 @@ function Overview({ account, isArtist, onNavigate }: { account: Account; isArtis
   return (
     <>
       <div className="mb-8">
-        <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Seu espaço PayArt</p>
+        <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Seu espaço PayArt</p>
         <h1 className="text-4xl font-extrabold tracking-[-0.06em] sm:text-5xl">Olá, {account.name.split(" ")[0]}.</h1>
-        <p className="mt-3 max-w-xl text-[#5f586d]">
+        <p className="mt-3 max-w-xl text-[#475569]">
           {isArtist ? "Gerencie suas obras, seu perfil público e suas preferências de recebimento." : "Sua área de comprador está pronta. Explore artistas e encontre sua próxima obra favorita."}
         </p>
       </div>
       {isArtist ? (
         <div className="grid gap-4 sm:grid-cols-2">
           <button onClick={() => onNavigate("artworks")} className={`${cardClass} text-left transition hover:-translate-y-1 hover:shadow-md`}>
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#f4efff] text-[#5c2df2]"><Palette size={21} /></span>
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#f4efff] text-[#6d28d9]"><Palette size={21} /></span>
             <span className="mt-5 block text-3xl font-extrabold">{account.artworks.length}</span>
-            <span className="mt-1 block text-sm text-[#5f586d]">obras publicadas</span>
-            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#5c2df2]">Gerenciar obras <ArrowUpRight size={16} /></span>
+            <span className="mt-1 block text-sm text-[#475569]">obras publicadas</span>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#6d28d9]">Gerenciar obras <ArrowUpRight size={16} /></span>
           </button>
           <button onClick={() => onNavigate("profile")} className={`${cardClass} text-left transition hover:-translate-y-1 hover:shadow-md`}>
             <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#fff0fa] text-[#df3ea8]"><UserRound size={21} /></span>
             <span className="mt-5 block text-lg font-bold">Seu perfil de artista</span>
-            <span className="mt-1 block text-sm text-[#5f586d]">Conte sua história e apresente seu trabalho.</span>
-            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#5c2df2]">Editar perfil <ArrowUpRight size={16} /></span>
+            <span className="mt-1 block text-sm text-[#475569]">Conte sua história e apresente seu trabalho.</span>
+            <span className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#6d28d9]">Editar perfil <ArrowUpRight size={16} /></span>
           </button>
           <div className={`${cardClass} sm:col-span-2`}>
             <h2 className="text-lg font-bold">Próximos passos</h2>
-            <p className="mt-2 text-sm leading-6 text-[#5f586d]">Complete seu perfil e publique suas obras. Os pagamentos no PayArt são apenas simulações, sem cobrança ou conexão com bancos.</p>
+            <p className="mt-2 text-sm leading-6 text-[#475569]">Complete seu perfil e publique suas obras. Os pagamentos no PayArt são apenas simulações, sem cobrança ou conexão com bancos.</p>
             <button onClick={() => onNavigate("payments")} className="mt-4 rounded-xl border border-black/10 px-4 py-2.5 text-sm font-semibold transition hover:bg-black/5">Configurar recebimento</button>
           </div>
         </div>
       ) : (
         <div className={`${cardClass} max-w-2xl`}>
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#f4efff] text-[#5c2df2]"><ShoppingBag size={23} /></span>
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[#f4efff] text-[#6d28d9]"><ShoppingBag size={23} /></span>
           <h2 className="mt-5 text-2xl font-bold">Seu perfil de comprador</h2>
-          <p className="mt-2 max-w-lg text-sm leading-6 text-[#5f586d]">Mantenha suas informações pessoais atualizadas e descubra obras de artistas independentes no catálogo.</p>
+          <p className="mt-2 max-w-lg text-sm leading-6 text-[#475569]">Mantenha suas informações pessoais atualizadas e descubra obras de artistas independentes no catálogo.</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <button onClick={() => onNavigate("profile")} className="rounded-xl bg-[#5c2df2] px-5 py-3 text-sm font-bold text-white">Editar meu perfil</button>
+            <button onClick={() => onNavigate("profile")} className="rounded-xl bg-[#6d28d9] px-5 py-3 text-sm font-bold text-white">Editar meu perfil</button>
             <Link href="/explorar" className="rounded-xl border border-black/10 px-5 py-3 text-sm font-semibold">Explorar obras</Link>
             <button onClick={() => onNavigate("favorites")} className="rounded-xl border border-black/10 px-5 py-3 text-sm font-semibold">Ver favoritos</button>
           </div>
@@ -283,25 +320,41 @@ function ImagePositionControls({
   label,
   position,
   onChange,
+  imageFit,
+  onImageFitChange,
 }: {
   label: string;
   position: ImagePosition;
   onChange: (position: ImagePosition) => void;
+  imageFit: ImageFit;
+  onImageFitChange: (fit: ImageFit) => void;
 }) {
+  const imageLabel = label === "banner" ? "do banner" : "da foto";
   return (
-    <fieldset className="mt-3 grid gap-3 rounded-xl bg-[#f7f5fa] p-4 sm:grid-cols-2">
-      <legend className="px-1 text-xs font-semibold text-[#5f586d]">Ajustar enquadramento da {label}</legend>
+    <fieldset className="mt-3 grid gap-4 rounded-xl bg-[#f7f5fa] p-4 sm:grid-cols-2">
+      <legend className="px-1 text-xs font-semibold text-[#475569]">Ajustar enquadramento {imageLabel}</legend>
+      <label className="text-xs font-medium text-[#475569] sm:col-span-2">
+        Exibição da imagem
+        <select
+          value={imageFit}
+          onChange={(event) => onImageFitChange(event.target.value === "contain" ? "contain" : "cover")}
+          className="mt-2 block w-full rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm"
+        >
+          <option value="cover">Preencher a área (pode cortar as bordas)</option>
+          <option value="contain">Mostrar a imagem inteira</option>
+        </select>
+      </label>
       {(["x", "y"] as const).map((axis) => (
-        <label key={axis} className="text-xs font-medium text-[#5f586d]">
+        <label key={axis} className="text-xs font-medium text-[#475569]">
           {axis === "x" ? "Horizontal" : "Vertical"} · {position[axis]}%
           <input
             type="range"
             min="0"
             max="100"
             value={position[axis]}
-            aria-label={`Posição ${axis === "x" ? "horizontal" : "vertical"} da ${label}`}
+            aria-label={`Posição ${axis === "x" ? "horizontal" : "vertical"} ${imageLabel}`}
             onChange={(event) => onChange({ ...position, [axis]: Number(event.target.value) })}
-            className="mt-2 block w-full accent-[#5c2df2]"
+            className="mt-2 block w-full accent-[#6d28d9]"
           />
         </label>
       ))}
@@ -318,6 +371,8 @@ function ProfileEditor({ account, onSave }: { account: Account; onSave: (account
   const [banner, setBanner] = useState(account.banner);
   const [avatarPosition, setAvatarPosition] = useState<ImagePosition>(account.avatarPosition);
   const [bannerPosition, setBannerPosition] = useState<ImagePosition>(account.bannerPosition);
+  const [avatarFit, setAvatarFit] = useState<ImageFit>(account.avatarFit);
+  const [bannerFit, setBannerFit] = useState<ImageFit>(account.bannerFit);
   const [deliveryAddress, setDeliveryAddress] = useState(account.deliveryAddress ?? { ...emptyDeliveryAddress });
   const [error, setError] = useState("");
   const [processingImage, setProcessingImage] = useState(false);
@@ -358,6 +413,8 @@ function ProfileEditor({ account, onSave }: { account: Account; onSave: (account
       banner,
       avatarPosition,
       bannerPosition,
+      avatarFit,
+      bannerFit,
       deliveryAddress,
     });
   }
@@ -365,47 +422,47 @@ function ProfileEditor({ account, onSave }: { account: Account; onSave: (account
   return (
     <div className="max-w-3xl">
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Perfil</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Perfil</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.05em]">Edite suas informações</h1>
-        <p className="mt-2 text-sm text-[#5f586d]">{isArtist ? "Essas informações ajudam o público a conhecer você e seu trabalho." : "Mantenha seus dados de consumidor atualizados."}</p>
+        <p className="mt-2 text-sm text-[#475569]">{isArtist ? "Essas informações ajudam o público a conhecer você e seu trabalho." : "Mantenha seus dados de consumidor atualizados."}</p>
       </div>
       <form onSubmit={handleSubmit} className={`${cardClass} space-y-5`}>
         <div>
           <label htmlFor="profile-banner" className="block text-sm font-semibold">Banner do perfil</label>
           {banner ? (
-            <DisplayImage src={banner} label="Prévia do banner do perfil" objectPosition={`${bannerPosition.x}% ${bannerPosition.y}%`} className="mt-2 h-36 rounded-xl bg-[#eee8ff]" />
+            <DisplayImage src={banner} label="Prévia do banner do perfil" objectPosition={`${bannerPosition.x}% ${bannerPosition.y}%`} imageFit={bannerFit} className="mt-2 h-36 rounded-xl bg-[#f3e8ff]" />
           ) : (
-            <div className="mt-2 grid h-36 place-items-center rounded-xl bg-gradient-to-r from-[#5c2df2] via-[#a45be8] to-[#ffbde7] text-sm font-semibold text-white">Prévia do banner</div>
+            <div className="mt-2 grid h-36 place-items-center rounded-xl bg-gradient-to-r from-[#6d28d9] via-[#8b5cf6] to-[#facc15] text-sm font-semibold text-white">Prévia do banner</div>
           )}
-          <input id="profile-banner" type="file" accept="image/jpeg,image/png,image/webp" disabled={processingImage} onChange={(event) => handleImageChange(event, setBanner, "banner")} className="mt-3 block w-full text-sm text-[#5f586d] file:mr-4 file:rounded-lg file:border-0 file:bg-[#f4efff] file:px-4 file:py-2 file:font-semibold file:text-[#5c2df2]" />
+          <input id="profile-banner" type="file" accept="image/jpeg,image/png,image/webp" disabled={processingImage} onChange={(event) => handleImageChange(event, setBanner, "banner")} className="mt-3 block w-full text-sm text-[#475569] file:mr-4 file:rounded-lg file:border-0 file:bg-[#f4efff] file:px-4 file:py-2 file:font-semibold file:text-[#6d28d9]" />
           <div className="mt-2 flex flex-wrap items-center gap-3">
-            <p className="text-xs leading-5 text-[#746e80]">JPG, PNG ou WebP até 5 MB. A imagem é otimizada antes de salvar.</p>
+            <p className="text-xs leading-5 text-[#746e80]">JPG, PNG ou WebP até 5 MB. A imagem é otimizada antes de salvar. Use os controles abaixo para mover o enquadramento.</p>
             {banner && <button type="button" onClick={() => { setBanner(""); setBannerPosition({ x: 50, y: 50 }); }} className="text-xs font-semibold text-red-700">Remover banner</button>}
           </div>
-          {banner && <ImagePositionControls label="banner" position={bannerPosition} onChange={setBannerPosition} />}
+          {banner && <ImagePositionControls label="banner" position={bannerPosition} onChange={setBannerPosition} imageFit={bannerFit} onImageFitChange={setBannerFit} />}
         </div>
         <div className="flex flex-wrap items-center gap-4">
           {avatar ? (
-            <DisplayImage src={avatar} label={`Prévia da foto de ${name || "perfil"}`} objectPosition={`${avatarPosition.x}% ${avatarPosition.y}%`} className="h-20 w-20 rounded-full bg-[#eee8ff]" />
+            <DisplayImage src={avatar} label={`Prévia da foto de ${name || "perfil"}`} objectPosition={`${avatarPosition.x}% ${avatarPosition.y}%`} imageFit={avatarFit} className="h-20 w-20 rounded-full bg-[#f3e8ff]" />
           ) : (
-            <div className="grid h-20 w-20 place-items-center rounded-full bg-[#eee8ff] text-[#5c2df2]"><UserRound size={30} /></div>
+            <div className="grid h-20 w-20 place-items-center rounded-full bg-[#f3e8ff] text-[#6d28d9]"><UserRound size={30} /></div>
           )}
           <div>
             <label htmlFor="profile-avatar" className="block text-sm font-semibold">Foto de perfil</label>
-            <input id="profile-avatar" type="file" accept="image/jpeg,image/png,image/webp" disabled={processingImage} onChange={(event) => handleImageChange(event, setAvatar, "avatar")} className="mt-2 block max-w-full text-xs text-[#5f586d] file:mr-3 file:rounded-lg file:border-0 file:bg-[#f4efff] file:px-3 file:py-2 file:font-semibold file:text-[#5c2df2]" />
-            <p className="mt-2 text-xs leading-5 text-[#746e80]">JPG, PNG ou WebP até 5 MB; a foto é compactada automaticamente.</p>
-            {processingImage && <p role="status" className="mt-2 text-xs font-semibold text-[#5c2df2]">Otimizando imagem...</p>}
+            <input id="profile-avatar" type="file" accept="image/jpeg,image/png,image/webp" disabled={processingImage} onChange={(event) => handleImageChange(event, setAvatar, "avatar")} className="mt-2 block max-w-full text-xs text-[#475569] file:mr-3 file:rounded-lg file:border-0 file:bg-[#f4efff] file:px-3 file:py-2 file:font-semibold file:text-[#6d28d9]" />
+            <p className="mt-2 text-xs leading-5 text-[#746e80]">JPG, PNG ou WebP até 5 MB; a foto é compactada automaticamente. Use os controles abaixo para mover o enquadramento.</p>
+            {processingImage && <p role="status" className="mt-2 text-xs font-semibold text-[#6d28d9]">Otimizando imagem...</p>}
           </div>
           {avatar && <button type="button" onClick={() => { setAvatar(""); setAvatarPosition({ x: 50, y: 50 }); }} className="text-xs font-semibold text-red-700">Remover foto</button>}
         </div>
-        {avatar && <ImagePositionControls label="foto de perfil" position={avatarPosition} onChange={setAvatarPosition} />}
+        {avatar && <ImagePositionControls label="foto de perfil" position={avatarPosition} onChange={setAvatarPosition} imageFit={avatarFit} onImageFitChange={setAvatarFit} />}
         <label className="block text-sm font-semibold">
           {isArtist ? "Nome artístico" : "Nome"}
           <input required minLength={2} value={name} onChange={(event) => setName(event.target.value)} className={inputClass} />
         </label>
         <label className="block text-sm font-semibold">
           E-mail
-          <input value={account.email} disabled className={`${inputClass} bg-[#f3f0ee] text-[#746e80]`} />
+          <input value={account.email} disabled className={`${inputClass} bg-[#ffffff] text-[#746e80]`} />
         </label>
         <label className="block text-sm font-semibold">
           Telefone
@@ -422,7 +479,7 @@ function ProfileEditor({ account, onSave }: { account: Account; onSave: (account
           </div>
         )}
         {error && <Toast type="error" message={error} />}
-        <button type="submit" disabled={processingImage} className="rounded-xl bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-6 py-3 font-bold text-white disabled:cursor-wait disabled:opacity-60">Salvar perfil</button>
+        <button type="submit" disabled={processingImage} className="rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-6 py-3 font-bold text-white disabled:cursor-wait disabled:opacity-60">Salvar perfil</button>
       </form>
     </div>
   );
@@ -439,6 +496,7 @@ function ArtworkManager({
   onEdit: (artwork: Artwork | null) => void;
   onSave: (account: Account) => void;
 }) {
+  const availableArtworks = account.artworks.filter((artwork) => !artwork.isSold);
   const [title, setTitle] = useState(editingArtwork?.title ?? "");
   const [category, setCategory] = useState(editingArtwork?.category ?? "");
   const [price, setPrice] = useState(editingArtwork?.price ?? "");
@@ -487,6 +545,8 @@ function ArtworkManager({
       description: description.trim(),
       image,
       isSold: editingArtwork?.isSold,
+      moderationStatus: "approved",
+      moderationReason: "",
       shippingWidth: packageValues[0],
       shippingHeight: packageValues[1],
       shippingLength: packageValues[2],
@@ -508,33 +568,32 @@ function ArtworkManager({
       <div>
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Ateliê</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Ateliê</p>
             <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.05em]">Minhas obras</h1>
           </div>
-          <button onClick={() => onEdit(null)} className="inline-flex items-center gap-2 rounded-xl bg-[#5c2df2] px-4 py-3 text-sm font-bold text-white"><Plus size={17} /> Nova obra</button>
+          <button onClick={() => onEdit(null)} className="inline-flex items-center gap-2 rounded-xl bg-[#6d28d9] px-4 py-3 text-sm font-bold text-white"><Plus size={17} /> Nova obra</button>
         </div>
-        {account.artworks.length === 0 ? (
+        {availableArtworks.length === 0 ? (
           <div className={`${cardClass} text-center`}>
-            <ImagePlus className="mx-auto text-[#5c2df2]" size={32} />
+            <ImagePlus className="mx-auto text-[#6d28d9]" size={32} />
             <h2 className="mt-4 font-bold">Seu catálogo começa aqui</h2>
-            <p className="mt-2 text-sm text-[#5f586d]">Publique sua primeira obra para apresentá-la ao público.</p>
+            <p className="mt-2 text-sm text-[#475569]">Publique sua primeira obra para apresentá-la ao público.</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {account.artworks.map((artwork) => (
+            {availableArtworks.map((artwork) => (
               <article key={artwork.id} className={`${cardClass} flex gap-4 p-4`}>
                 {artwork.image ? (
                   <MediaImage src={artwork.image} alt={artwork.title} className="h-20 w-20 shrink-0 rounded-xl bg-white" imageClassName="object-contain p-1" sizes="80px" />
                 ) : (
-                  <div className="grid h-20 w-20 shrink-0 place-items-center rounded-xl bg-[#eee8ff] text-[#5c2df2]"><Palette size={25} /></div>
+                  <div className="grid h-20 w-20 shrink-0 place-items-center rounded-xl bg-[#f3e8ff] text-[#6d28d9]"><Palette size={25} /></div>
                 )}
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate font-bold">{artwork.title}</h2>
                   <p className="mt-1 text-xs text-[#746e80]">{artwork.category}</p>
-                  {artwork.isSold && <p className="mt-1 text-xs font-bold text-emerald-700">Vendida — removida da galeria</p>}
                   <p className="mt-2 text-sm font-bold">R$ {Number(artwork.price).toFixed(2).replace(".", ",")}</p>
                   <div className="mt-3 flex gap-3">
-                    <button onClick={() => onEdit(artwork)} className="text-xs font-bold text-[#5c2df2]">Editar</button>
+                    {!artwork.isSold && <button onClick={() => onEdit(artwork)} className="text-xs font-bold text-[#6d28d9]">Editar</button>}
                     <button onClick={() => deleteArtwork(artwork.id)} className="inline-flex items-center gap-1 text-xs font-semibold text-red-700"><Trash2 size={13} /> Excluir</button>
                   </div>
                 </div>
@@ -570,11 +629,11 @@ function ArtworkManager({
         </fieldset>
         <label className="block text-sm font-semibold">Descrição<textarea value={description} onChange={(event) => setDescription(event.target.value)} className={`${inputClass} min-h-24`} maxLength={500} /></label>
         <label className="block text-sm font-semibold">Imagem (URL)<input type="url" value={image.startsWith("data:") ? "" : image} onChange={(event) => setImage(event.target.value)} className={inputClass} placeholder="https://..." /></label>
-        <label className="block text-sm font-semibold">Ou envie uma imagem<input type="file" accept="image/jpeg,image/png,image/webp" disabled={processingImage} onChange={handleImageChange} className="mt-2 block w-full text-xs text-[#5f586d] file:mr-3 file:rounded-lg file:border-0 file:bg-[#f4efff] file:px-3 file:py-2 file:font-semibold file:text-[#5c2df2]" /><span className="mt-2 block text-xs font-normal leading-5 text-[#746e80]">JPG, PNG ou WebP até 5 MB. A imagem será convertida e otimizada para aparecer no catálogo.</span>{processingImage && <span role="status" className="mt-2 block text-xs font-semibold text-[#5c2df2]">Otimizando imagem...</span>}</label>
-        {image && <DisplayImage src={image} label="Prévia da obra" className="h-36 rounded-xl bg-[#eee8ff]" />}
+        <label className="block text-sm font-semibold">Ou envie uma imagem<input type="file" accept="image/jpeg,image/png,image/webp" disabled={processingImage} onChange={handleImageChange} className="mt-2 block w-full text-xs text-[#475569] file:mr-3 file:rounded-lg file:border-0 file:bg-[#f4efff] file:px-3 file:py-2 file:font-semibold file:text-[#6d28d9]" /><span className="mt-2 block text-xs font-normal leading-5 text-[#746e80]">JPG, PNG ou WebP até 5 MB. A imagem será convertida e otimizada para aparecer no catálogo.</span>{processingImage && <span role="status" className="mt-2 block text-xs font-semibold text-[#6d28d9]">Otimizando imagem...</span>}</label>
+        {image && <DisplayImage src={image} label="Prévia da obra" className="h-36 rounded-xl bg-[#f3e8ff]" />}
         {error && <Toast type="error" message={error} />}
         <div className="flex flex-wrap gap-2">
-          <button type="submit" disabled={processingImage} className="rounded-xl bg-gradient-to-r from-[#5c2df2] to-[#ff53c6] px-5 py-3 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60">{editingArtwork ? "Salvar alterações" : "Publicar obra"}</button>
+          <button type="submit" disabled={processingImage} className="rounded-xl bg-gradient-to-r from-[#6d28d9] to-[#c2410c] px-5 py-3 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60">{editingArtwork ? "Salvar alterações" : "Publicar obra"}</button>
           {editingArtwork && <button type="button" onClick={() => onEdit(null)} className="rounded-xl border border-black/10 px-4 py-3 text-sm font-semibold">Cancelar</button>}
         </div>
       </form>
@@ -595,11 +654,11 @@ function PaymentSettings({ account, onSave }: { account: Account; onSave: (accou
   return (
     <div className="max-w-2xl">
       <div className="mb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#5c2df2]">Recebimentos</p>
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#6d28d9]">Recebimentos</p>
         <h1 className="mt-2 text-3xl font-extrabold tracking-[-0.05em]">Preferências de pagamento</h1>
       </div>
       <form onSubmit={handleSubmit} className={`${cardClass} space-y-5`}>
-        <div className="rounded-xl border border-[#5c2df2]/15 bg-[#f7f5fa] p-4 text-sm leading-6 text-[#4c4560]">
+        <div className="rounded-xl border border-[#6d28d9]/15 bg-[#f7f5fa] p-4 text-sm leading-6 text-[#4c4560]">
           O PayArt está em modo de demonstração. Os pagamentos fictícios não movimentam dinheiro; nenhuma conta bancária ou provedor de pagamento está conectado.
         </div>
         <label className="block text-sm font-semibold">
@@ -608,7 +667,7 @@ function PaymentSettings({ account, onSave }: { account: Account; onSave: (accou
           <span className="mt-2 block text-xs font-normal text-[#746e80]">Este dado é apenas ilustrativo e não participa de cobranças nem de transferências.</span>
         </label>
         {error && <Toast type="error" message={error} />}
-        <button type="submit" className="rounded-xl bg-[#5c2df2] px-6 py-3 font-bold text-white">Salvar preferência</button>
+        <button type="submit" className="rounded-xl bg-[#6d28d9] px-6 py-3 font-bold text-white">Salvar preferência</button>
       </form>
     </div>
   );

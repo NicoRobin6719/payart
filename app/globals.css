@@ -1,8 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f3f0ee;
-  --foreground: #121212;
+  --background: #ffffff;
+  --foreground: #171717;
+  --brand-purple: #6d28d9;
+  --brand-yellow: #fab115;
+  --brand-orange: #c2410c;
+  --brand-blue: #1d4ed8;
 }
 
 @theme inline {
@@ -30,7 +34,12 @@ a {
   text-decoration: none;
 }
 
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid var(--brand-blue);
+  outline-offset: 3px;
+}
+
 ::selection {
-  background: #5c2df2;
+  background: var(--brand-purple);
   color: #ffffff;
 }

@@ -50,6 +50,12 @@ function orderFromData(id: string, data: Record<string, unknown>): SimulatedOrde
     || !Array.isArray(data.participants)
     || !data.participants.every((participant) => typeof participant === "string")
     || typeof data.amount !== "string"
+    || !Number.isFinite(Number(data.amount))
+    || Number(data.amount) <= 0
+    || (data.shippingAmount !== undefined
+      && (typeof data.shippingAmount !== "string"
+        || !Number.isFinite(Number(data.shippingAmount))
+        || Number(data.shippingAmount) < 0))
     || !isPaymentMethod(data.paymentMethod)
     || !isOrderStatus(data.status)
     || typeof data.createdAt !== "string"
@@ -135,7 +141,7 @@ export async function createSimulatedOrder(
     const orders = readLocalOrders();
     orders.unshift(saved);
     window.localStorage.setItem(localOrdersKey, JSON.stringify(orders));
-    markLocalArtworkSold(artwork.id);
+    markLocalArtworkSold(artwork.id, artwork.artistId);
     window.dispatchEvent(new CustomEvent(localOrdersUpdatedEvent));
     return saved;
   }
