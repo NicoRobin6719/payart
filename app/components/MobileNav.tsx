@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 const links = [
+  ["/feed", "Feed"],
   ["/explorar", "Explorar"],
   ["/vender", "Vender"],
   ["/artistas", "Para Artistas"],

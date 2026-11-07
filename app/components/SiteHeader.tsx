@@ -10,6 +10,7 @@ import { firebaseAuth } from "./firebase-client";
 import MobileNav from "./MobileNav";
 
 const navigationLinks = [
+  ["/feed", "Feed"],
   ["/explorar", "Explorar"],
   ["/vender", "Vender"],
   ["/artistas", "Para Artistas"],

@@ -19,6 +19,14 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/profiles/$(userId)).data.role == 'artist';
     }
 
+    function feedAuthorMatchesProfile() {
+      return exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.name
+          == request.resource.data.authorName
+        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.avatar
+          == request.resource.data.authorAvatar;
+    }
+
     match /superModerators/{userId} {
       allow read, write: if false;
     }
@@ -127,6 +135,115 @@ service cloud.firestore {
         && request.resource.data.text.size() >= 3
         && request.resource.data.text.size() <= 1000;
       allow delete: if signedIn() && isActiveAccount() && resource.data.accountId == request.auth.uid;
+    }
+
+    match /feedPosts/{postId} {
+      allow read: if true;
+      allow create: if isActiveAccount()
+        && request.resource.data.authorId == request.auth.uid
+        && feedAuthorMatchesProfile()
+        && request.resource.data.authorName is string
+        && request.resource.data.authorName.size() > 0
+        && request.resource.data.authorName.size() <= 100
+        && request.resource.data.authorAvatar is string
+        && request.resource.data.createdAt is string
+        && (
+          (
+            request.resource.data.type == 'post'
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 500
+            && request.resource.data.keys().hasOnly([
+              'authorId',
+              'authorName',
+              'authorAvatar',
+              'text',
+              'createdAt',
+              'type'
+            ])
+          )
+          || (
+            request.resource.data.type == 'repost'
+            && request.resource.data.text == ''
+            && request.resource.data.originalPostId is string
+            && request.resource.data.originalPostId.size() > 0
+            && exists(/databases/$(database)/documents/feedPosts/$(request.resource.data.originalPostId))
+            && request.resource.data.originalAuthorId is string
+            && request.resource.data.originalAuthorName is string
+            && request.resource.data.originalAuthorAvatar is string
+            && request.resource.data.originalText is string
+            && request.resource.data.originalText.size() <= 500
+            && get(/databases/$(database)/documents/feedPosts/$(request.resource.data.originalPostId)).data.authorId
+              == request.resource.data.originalAuthorId
+            && get(/databases/$(database)/documents/feedPosts/$(request.resource.data.originalPostId)).data.text
+              == request.resource.data.originalText
+            && request.resource.data.keys().hasOnly([
+              'authorId',
+              'authorName',
+              'authorAvatar',
+              'text',
+              'createdAt',
+              'type',
+              'originalPostId',
+              'originalAuthorId',
+              'originalAuthorName',
+              'originalAuthorAvatar',
+              'originalText'
+            ])
+          )
+        );
+      allow update: if isActiveAccount()
+        && resource.data.authorId == request.auth.uid
+        && resource.data.type == 'post'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 500;
+      allow delete: if isActiveAccount() && resource.data.authorId == request.auth.uid;
+
+      match /likes/{userId} {
+        allow read: if true;
+        allow create: if isOwner(userId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.createdAt is string
+          && request.resource.data.keys().hasOnly(['userId', 'createdAt']);
+        allow delete: if isOwner(userId);
+        allow update: if false;
+      }
+
+      match /reposts/{userId} {
+        allow read: if true;
+        allow create: if isOwner(userId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.createdAt is string
+          && request.resource.data.keys().hasOnly(['userId', 'createdAt']);
+        allow delete: if isOwner(userId);
+        allow update: if false;
+      }
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isActiveAccount()
+          && request.resource.data.authorId == request.auth.uid
+          && feedAuthorMatchesProfile()
+          && request.resource.data.authorName is string
+          && request.resource.data.authorName.size() > 0
+          && request.resource.data.authorName.size() <= 100
+          && request.resource.data.authorAvatar is string
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 280
+          && request.resource.data.createdAt is string
+          && request.resource.data.keys().hasOnly([
+            'authorId',
+            'authorName',
+            'authorAvatar',
+            'text',
+            'createdAt'
+          ]);
+        allow delete: if isActiveAccount() && resource.data.authorId == request.auth.uid;
+        allow update: if false;
+      }
     }
 
     match /conversations/{conversationId} {
