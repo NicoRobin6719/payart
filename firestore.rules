@@ -141,7 +141,6 @@ service cloud.firestore {
       allow read: if true;
       allow create: if isActiveAccount()
         && request.resource.data.authorId == request.auth.uid
-        && feedAuthorMatchesProfile()
         && request.resource.data.authorName is string
         && request.resource.data.authorName.size() > 0
         && request.resource.data.authorName.size() <= 100
@@ -150,6 +149,7 @@ service cloud.firestore {
         && (
           (
             request.resource.data.type == 'post'
+            && feedAuthorMatchesProfile()
             && request.resource.data.text is string
             && request.resource.data.text.size() > 0
             && request.resource.data.text.size() <= 500
@@ -164,15 +164,20 @@ service cloud.firestore {
           )
           || (
             request.resource.data.type == 'repost'
-            && request.resource.data.text == ''
+            && request.resource.data.text is string
+            && request.resource.data.text.size() > 0
+            && request.resource.data.text.size() <= 500
             && request.resource.data.originalPostId is string
             && request.resource.data.originalPostId.size() > 0
+            && postId == 'quote_' + request.auth.uid + '_' + request.resource.data.originalPostId
             && exists(/databases/$(database)/documents/feedPosts/$(request.resource.data.originalPostId))
             && request.resource.data.originalAuthorId is string
             && request.resource.data.originalAuthorName is string
             && request.resource.data.originalAuthorAvatar is string
             && request.resource.data.originalText is string
             && request.resource.data.originalText.size() <= 500
+            && get(/databases/$(database)/documents/feedPosts/$(request.resource.data.originalPostId)).data.type
+              == 'post'
             && get(/databases/$(database)/documents/feedPosts/$(request.resource.data.originalPostId)).data.authorId
               == request.resource.data.originalAuthorId
             && get(/databases/$(database)/documents/feedPosts/$(request.resource.data.originalPostId)).data.text
@@ -203,7 +208,9 @@ service cloud.firestore {
 
       match /likes/{userId} {
         allow read: if true;
-        allow create: if isOwner(userId)
+        allow create: if isActiveAccount()
+          && isOwner(userId)
+          && exists(/databases/$(database)/documents/feedPosts/$(postId))
           && request.resource.data.userId == request.auth.uid
           && request.resource.data.createdAt is string
           && request.resource.data.keys().hasOnly(['userId', 'createdAt']);
@@ -213,7 +220,10 @@ service cloud.firestore {
 
       match /reposts/{userId} {
         allow read: if true;
-        allow create: if isOwner(userId)
+        allow create: if isActiveAccount()
+          && isOwner(userId)
+          && exists(/databases/$(database)/documents/feedPosts/$(postId))
+          && get(/databases/$(database)/documents/feedPosts/$(postId)).data.type == 'post'
           && request.resource.data.userId == request.auth.uid
           && request.resource.data.createdAt is string
           && request.resource.data.keys().hasOnly(['userId', 'createdAt']);
@@ -224,8 +234,8 @@ service cloud.firestore {
       match /comments/{commentId} {
         allow read: if true;
         allow create: if isActiveAccount()
+          && exists(/databases/$(database)/documents/feedPosts/$(postId))
           && request.resource.data.authorId == request.auth.uid
-          && feedAuthorMatchesProfile()
           && request.resource.data.authorName is string
           && request.resource.data.authorName.size() > 0
           && request.resource.data.authorName.size() <= 100

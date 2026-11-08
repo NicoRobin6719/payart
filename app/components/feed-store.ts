@@ -3,14 +3,12 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
   limit,
   onSnapshot,
   orderBy,
   query,
-  setDoc,
+  runTransaction,
   Unsubscribe,
-  writeBatch,
 } from "firebase/firestore";
 import { Account, isLocalAccount } from "./account-store";
 import { firestore } from "./firebase-client";
@@ -35,6 +33,7 @@ export type FeedPost = {
   originalText?: string;
   isLocal?: boolean;
   likeCount: number;
+  commentCount: number;
   repostCount: number;
   isLiked: boolean;
   isReposted: boolean;
@@ -51,9 +50,14 @@ export type FeedComment = {
   isLocal?: boolean;
 };
 
-type StoredFeedPost = Omit<FeedPost, "likeCount" | "repostCount" | "isLiked" | "isReposted">;
+type StoredFeedPost = Omit<FeedPost, "likeCount" | "commentCount" | "repostCount" | "isLiked" | "isReposted">;
 type LocalReaction = { likedBy: string[]; repostedBy: string[] };
 type LocalComment = FeedComment;
+type PostEngagement = {
+  likedBy: string[];
+  commentIds: string[];
+  repostedBy: string[];
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -105,7 +109,21 @@ function readLocalComments(): LocalComment[] {
   if (!stored) return [];
   const parsed: unknown = JSON.parse(stored);
   if (!Array.isArray(parsed)) throw new Error("Os comentários locais do feed estão inválidos.");
-  return parsed as LocalComment[];
+  return parsed.map((item) => {
+    if (
+      !isRecord(item)
+      || typeof item.id !== "string"
+      || typeof item.postId !== "string"
+      || typeof item.authorId !== "string"
+      || typeof item.authorName !== "string"
+      || typeof item.authorAvatar !== "string"
+      || typeof item.text !== "string"
+      || typeof item.createdAt !== "string"
+    ) {
+      throw new Error("Um comentário local está incompleto ou inválido.");
+    }
+    return item as LocalComment;
+  });
 }
 
 function storedPostFromData(id: string, data: Record<string, unknown>): StoredFeedPost {
@@ -137,35 +155,66 @@ function storedPostFromData(id: string, data: Record<string, unknown>): StoredFe
 function mergePosts(
   cloudPosts: StoredFeedPost[],
   localPosts: StoredFeedPost[],
-  reactions: Map<string, { likeCount: number; repostCount: number; isLiked: boolean; isReposted: boolean }>,
+  reactions: Map<string, PostEngagement>,
   accountId: string | null,
 ): FeedPost[] {
   const cloudIds = new Set(cloudPosts.map((post) => post.id));
   const localReactions = readLocalReactions();
+  const localComments = readLocalComments();
   return [
-    ...cloudPosts.map((post) => ({ ...post, isLocal: false })),
-    ...localPosts.filter((post) => !cloudIds.has(post.id)).map((post) => ({ ...post, isLocal: true })),
+    ...cloudPosts.filter(isVisibleFeedPost).map((post) => ({ ...post, isLocal: false })),
+    ...localPosts.filter((post) => !cloudIds.has(post.id) && isVisibleFeedPost(post)).map((post) => ({ ...post, isLocal: true })),
   ]
     .map((post) => {
       const state = reactions.get(post.id);
+      const sourcePostId = post.type === "repost" && post.originalPostId ? post.originalPostId : post.id;
+      const sourceState = reactions.get(sourcePostId);
       const localState = localReactions[post.id] ?? { likedBy: [], repostedBy: [] };
+      const localSourceState = localReactions[sourcePostId] ?? { likedBy: [], repostedBy: [] };
+      const likedBy = new Set([...(state?.likedBy ?? []), ...localState.likedBy]);
+      const commentIds = new Set([...(state?.commentIds ?? []), ...localComments.filter((comment) => comment.postId === post.id).map((comment) => comment.id)]);
+      const repostedBy = new Set([...(sourceState?.repostedBy ?? []), ...localSourceState.repostedBy]);
       return {
         ...post,
-        likeCount: (state?.likeCount ?? 0) + localState.likedBy.length,
-        repostCount: (state?.repostCount ?? 0) + localState.repostedBy.length,
-        isLiked: accountId
-          ? Boolean(state?.isLiked || localState.likedBy.includes(accountId))
-          : false,
-        isReposted: accountId
-          ? Boolean(state?.isReposted || localState.repostedBy.includes(accountId))
-          : false,
+        likeCount: likedBy.size,
+        commentCount: commentIds.size,
+        repostCount: repostedBy.size,
+        isLiked: accountId ? likedBy.has(accountId) : false,
+        isReposted: accountId ? repostedBy.has(accountId) : false,
       };
     })
     .sort((first, second) => second.createdAt.localeCompare(first.createdAt));
 }
 
-function repostDocumentId(postId: string, accountId: string) {
-  return `repost_${accountId}_${postId}`;
+function isVisibleFeedPost(post: StoredFeedPost) {
+  return post.type !== "repost" || post.text.trim().length > 0;
+}
+
+export function rankFeedPosts(posts: FeedPost[], accountId: string | null): FeedPost[] {
+  const engagedAuthors = new Set(
+    posts
+      .filter((post) => post.isLiked || post.isReposted)
+      .map((post) => post.type === "repost" ? post.originalAuthorId ?? post.authorId : post.authorId),
+  );
+  const score = (post: FeedPost) => {
+    const createdAt = new Date(post.createdAt).getTime();
+    const ageHours = Number.isFinite(createdAt) ? Math.max(0, (Date.now() - createdAt) / 3_600_000) : 0;
+    const freshness = Math.exp(-ageHours / 36) * 2.5;
+    const engagement = (
+      Math.log1p(post.likeCount)
+      + Math.log1p(post.commentCount) * 1.4
+      + Math.log1p(post.repostCount) * 1.8
+    ) * Math.exp(-ageHours / 48);
+    const authorId = post.type === "repost" ? post.originalAuthorId ?? post.authorId : post.authorId;
+    const affinity = accountId && engagedAuthors.has(authorId) ? Math.exp(-ageHours / 72) * 1.5 : 0;
+    return freshness + engagement + affinity;
+  };
+  return [...posts].sort((first, second) => score(second) - score(first)
+    || second.createdAt.localeCompare(first.createdAt));
+}
+
+function quoteDocumentId(postId: string, accountId: string) {
+  return `quote_${accountId}_${postId}`;
 }
 
 function validateText(text: string, maxLength: number, label: string) {
@@ -179,7 +228,7 @@ function validateText(text: string, maxLength: number, label: string) {
 function explainFeedError(error: Error) {
   const code = "code" in error && typeof error.code === "string" ? error.code : "";
   if (code === "permission-denied") {
-    return new Error("O Firestore ainda não permite o feed. Publique as regras atualizadas do arquivo firestore.rules para habilitar as publicações e interações.");
+    return new Error("O Firestore bloqueou esta ação pelas regras atuais. Publique a versão atualizada de firestore.rules e recarregue o feed.");
   }
   return error;
 }
@@ -194,7 +243,7 @@ export function subscribeToFeed(
   onError: (error: Error) => void,
 ): () => void {
   let cloudPosts: StoredFeedPost[] = [];
-  const engagement = new Map<string, { likeCount: number; repostCount: number; isLiked: boolean; isReposted: boolean }>();
+  const engagement = new Map<string, PostEngagement>();
   const engagementListeners = new Map<string, Unsubscribe[]>();
   let localPosts: StoredFeedPost[] = [];
 
@@ -213,10 +262,13 @@ export function subscribeToFeed(
   publish();
 
   const unsubscribePosts = onSnapshot(
-    query(collection(firestore, "feedPosts"), orderBy("createdAt", "desc"), limit(30)),
+    query(collection(firestore, "feedPosts"), orderBy("createdAt", "desc"), limit(100)),
     (snapshots) => {
       try {
-        cloudPosts = snapshots.docs.map((snapshot) => storedPostFromData(snapshot.id, snapshot.data()));
+        cloudPosts = snapshots.docs
+          .map((snapshot) => storedPostFromData(snapshot.id, snapshot.data()))
+          .filter(isVisibleFeedPost)
+          .slice(0, 30);
         const activeIds = new Set(cloudPosts.map((post) => post.id));
         for (const [postId, listeners] of engagementListeners) {
           if (!activeIds.has(postId)) {
@@ -228,19 +280,25 @@ export function subscribeToFeed(
         for (const post of cloudPosts) {
           if (engagementListeners.has(post.id)) continue;
           const postReference = doc(firestore, "feedPosts", post.id);
-          const state = { likeCount: 0, repostCount: 0, isLiked: false, isReposted: false };
+          const state: PostEngagement = { likedBy: [], commentIds: [], repostedBy: [] };
           engagement.set(post.id, state);
           const likes = onSnapshot(collection(postReference, "likes"), (items) => {
-            state.likeCount = items.size;
-            state.isLiked = accountId ? items.docs.some((item) => item.id === accountId) : false;
+            state.likedBy = items.docs.map((item) => item.id);
             publish();
           }, (error) => onError(explainFeedError(error)));
-          const reposts = onSnapshot(collection(postReference, "reposts"), (items) => {
-            state.repostCount = items.size;
-            state.isReposted = accountId ? items.docs.some((item) => item.id === accountId) : false;
+          const comments = onSnapshot(query(collection(postReference, "comments"), limit(100)), (items) => {
+            state.commentIds = items.docs.map((item) => item.id);
             publish();
           }, (error) => onError(explainFeedError(error)));
-          engagementListeners.set(post.id, [likes, reposts]);
+          const listeners = [likes, comments];
+          if (post.type === "post") {
+            const reposts = onSnapshot(collection(postReference, "reposts"), (items) => {
+              state.repostedBy = items.docs.map((item) => item.id);
+              publish();
+            }, (error) => onError(explainFeedError(error)));
+            listeners.push(reposts);
+          }
+          engagementListeners.set(post.id, listeners);
         }
         publish();
       } catch (error) {
@@ -294,27 +352,7 @@ export async function deleteFeedPost(post: FeedPost, account: Account) {
   if (post.authorId !== account.id) throw new Error("Você só pode excluir suas próprias publicações.");
   if (post.isLocal || account.storageMode === "local" || isLocalAccount(account.id)) {
     window.localStorage.setItem(localPostsKey, JSON.stringify(readLocalPosts().filter((item) => item.id !== post.id)));
-    if (post.type === "repost" && post.originalPostId) {
-      const reactions = readLocalReactions();
-      const state = reactions[post.originalPostId];
-      if (state) {
-        state.repostedBy = state.repostedBy.filter((id) => id !== account.id);
-        reactions[post.originalPostId] = state;
-        window.localStorage.setItem(localReactionsKey, JSON.stringify(reactions));
-      }
-    }
     window.dispatchEvent(new CustomEvent(localFeedUpdatedEvent));
-    return;
-  }
-  if (post.type === "repost" && post.originalPostId) {
-    const batch = writeBatch(firestore);
-    batch.delete(doc(firestore, "feedPosts", post.id));
-    batch.delete(doc(firestore, "feedPosts", post.originalPostId, "reposts", account.id));
-    try {
-      await batch.commit();
-    } catch (error) {
-      throw reportWriteError(error, "Não foi possível excluir o repost.");
-    }
     return;
   }
   try {
@@ -339,71 +377,38 @@ export async function toggleFeedLike(post: FeedPost, account: Account) {
   }
   try {
     const reference = doc(firestore, "feedPosts", post.id, "likes", account.id);
-    if ((await getDoc(reference)).exists()) await deleteDoc(reference);
-    else await setDoc(reference, { userId: account.id, createdAt: new Date().toISOString() });
+    await runTransaction(firestore, async (transaction) => {
+      const snapshot = await transaction.get(reference);
+      if (snapshot.exists()) transaction.delete(reference);
+      else transaction.set(reference, { userId: account.id, createdAt: new Date().toISOString() });
+    });
   } catch (error) {
     throw reportWriteError(error, "Não foi possível atualizar a curtida.");
   }
 }
 
-export async function toggleFeedRepost(post: FeedPost, account: Account) {
+export async function createFeedQuotePost(post: FeedPost, account: Account, commentary: string) {
   const originalPostId = post.type === "repost" ? post.originalPostId : post.id;
   const originalAuthorId = post.type === "repost" ? post.originalAuthorId : post.authorId;
   const originalAuthorName = post.type === "repost" ? post.originalAuthorName : post.authorName;
   const originalAuthorAvatar = post.type === "repost" ? post.originalAuthorAvatar : post.authorAvatar;
   const originalText = post.type === "repost" ? post.originalText : post.text;
   if (!originalPostId || !originalAuthorId || !originalAuthorName || originalText === undefined) {
-    throw new Error("Não foi possível identificar a publicação original para repostar.");
+    throw new Error("Não foi possível identificar a publicação original para citar.");
   }
-  const localMode = post.isLocal || account.storageMode === "local" || isLocalAccount(account.id);
-  const reactions = readLocalReactions();
-  const localState = reactions[originalPostId] ?? { likedBy: [], repostedBy: [] };
-  const removing = localMode
-    ? localState.repostedBy.includes(account.id)
-    : post.isReposted;
+  const normalizedCommentary = validateText(commentary, 500, "O comentário da citação");
+  const localMode = account.storageMode === "local" || isLocalAccount(account.id) || post.isLocal;
 
   if (localMode) {
-    localState.repostedBy = removing
-      ? localState.repostedBy.filter((id) => id !== account.id)
-      : [...localState.repostedBy, account.id];
-    reactions[originalPostId] = localState;
     const posts = readLocalPosts();
-    const repostId = repostDocumentId(originalPostId, account.id);
-    const updatedPosts = removing
-      ? posts.filter((item) => item.id !== repostId)
-      : [{
-          id: repostId,
-          authorId: account.id,
-          authorName: account.name,
-          authorAvatar: account.avatar,
-          text: "",
-          createdAt: new Date().toISOString(),
-          type: "repost" as const,
-          originalPostId,
-          originalAuthorId,
-          originalAuthorName,
-          originalAuthorAvatar,
-          originalText,
-        }, ...posts];
-    window.localStorage.setItem(localReactionsKey, JSON.stringify(reactions));
-    window.localStorage.setItem(localPostsKey, JSON.stringify(updatedPosts));
-    window.dispatchEvent(new CustomEvent(localFeedUpdatedEvent));
-    return;
-  }
-
-  const batch = writeBatch(firestore);
-  const repostReference = doc(firestore, "feedPosts", post.id, "reposts", account.id);
-  const repostEventReference = doc(firestore, "feedPosts", repostDocumentId(originalPostId, account.id));
-  if (removing) {
-    batch.delete(repostReference);
-    batch.delete(repostEventReference);
-  } else {
-    batch.set(repostReference, { userId: account.id, createdAt: new Date().toISOString() });
-    batch.set(repostEventReference, {
+    const quoteId = quoteDocumentId(originalPostId, account.id);
+    if (posts.some((item) => item.id === quoteId)) throw new Error("Você já citou esta publicação.");
+    posts.unshift({
+      id: quoteId,
       authorId: account.id,
       authorName: account.name,
       authorAvatar: account.avatar,
-      text: "",
+      text: normalizedCommentary,
       createdAt: new Date().toISOString(),
       type: "repost",
       originalPostId,
@@ -412,11 +417,89 @@ export async function toggleFeedRepost(post: FeedPost, account: Account) {
       originalAuthorAvatar,
       originalText,
     });
+    window.localStorage.setItem(localPostsKey, JSON.stringify(posts));
+    window.dispatchEvent(new CustomEvent(localFeedUpdatedEvent));
+    return;
+  }
+
+  const quoteReference = doc(firestore, "feedPosts", quoteDocumentId(originalPostId, account.id));
+  try {
+    await runTransaction(firestore, async (transaction) => {
+      const quoteSnapshot = await transaction.get(quoteReference);
+      if (quoteSnapshot.exists()) throw new Error("Você já citou esta publicação.");
+      const createdAt = new Date().toISOString();
+      transaction.set(quoteReference, {
+        authorId: account.id,
+        authorName: account.name,
+        authorAvatar: account.avatar,
+        text: normalizedCommentary,
+        createdAt,
+        type: "repost",
+        originalPostId,
+        originalAuthorId,
+        originalAuthorName,
+        originalAuthorAvatar,
+        originalText,
+      });
+    });
+  } catch (error) {
+    throw reportWriteError(error, "Não foi possível publicar a citação.");
+  }
+}
+
+export async function createFeedRepost(post: FeedPost, account: Account) {
+  const originalPostId = post.type === "repost" ? post.originalPostId : post.id;
+  if (!originalPostId) throw new Error("Não foi possível identificar a publicação original para repostar.");
+  const localMode = account.storageMode === "local" || isLocalAccount(account.id) || post.isLocal;
+
+  if (localMode) {
+    const reactions = readLocalReactions();
+    const state = reactions[originalPostId] ?? { likedBy: [], repostedBy: [] };
+    if (state.repostedBy.includes(account.id)) throw new Error("Você já repostou esta publicação.");
+    state.repostedBy = [...state.repostedBy, account.id];
+    reactions[originalPostId] = state;
+    window.localStorage.setItem(localReactionsKey, JSON.stringify(reactions));
+    window.dispatchEvent(new CustomEvent(localFeedUpdatedEvent));
+    return;
+  }
+
+  const repostReference = doc(firestore, "feedPosts", originalPostId, "reposts", account.id);
+  try {
+    await runTransaction(firestore, async (transaction) => {
+      const snapshot = await transaction.get(repostReference);
+      if (snapshot.exists()) throw new Error("Você já repostou esta publicação.");
+      transaction.set(repostReference, { userId: account.id, createdAt: new Date().toISOString() });
+    });
+  } catch (error) {
+    throw reportWriteError(error, "Não foi possível repostar.");
+  }
+}
+
+export async function toggleFeedRepost(post: FeedPost, account: Account) {
+  if (post.isReposted) {
+    await removeFeedRepost(post, account);
+    return;
+  }
+  await createFeedRepost(post, account);
+}
+
+export async function removeFeedRepost(post: FeedPost, account: Account) {
+  if (!post.isReposted) return;
+  const originalPostId = post.type === "repost" ? post.originalPostId : post.id;
+  if (!originalPostId) throw new Error("Não foi possível identificar a publicação original.");
+  if (account.storageMode === "local" || isLocalAccount(account.id) || post.isLocal) {
+    const reactions = readLocalReactions();
+    const state = reactions[originalPostId] ?? { likedBy: [], repostedBy: [] };
+    state.repostedBy = state.repostedBy.filter((id) => id !== account.id);
+    reactions[originalPostId] = state;
+    window.localStorage.setItem(localReactionsKey, JSON.stringify(reactions));
+    window.dispatchEvent(new CustomEvent(localFeedUpdatedEvent));
+    return;
   }
   try {
-    await batch.commit();
+    await deleteDoc(doc(firestore, "feedPosts", originalPostId, "reposts", account.id));
   } catch (error) {
-    throw reportWriteError(error, "Não foi possível atualizar o repost.");
+    throw reportWriteError(error, "Não foi possível desfazer o repost.");
   }
 }
 
@@ -445,6 +528,7 @@ export function subscribeToFeedComments(
   postId: string,
   onChange: (comments: FeedComment[]) => void,
   onError: (error: Error) => void,
+  isLocalPost = false,
 ) {
   const publishLocal = () => {
     try {
@@ -457,6 +541,12 @@ export function subscribeToFeedComments(
   window.addEventListener(localFeedUpdatedEvent, publishLocal);
   window.addEventListener("storage", publishLocal);
   publishLocal();
+  if (isLocalPost) {
+    return () => {
+      window.removeEventListener(localFeedUpdatedEvent, publishLocal);
+      window.removeEventListener("storage", publishLocal);
+    };
+  }
   const unsubscribe = onSnapshot(
     query(collection(firestore, "feedPosts", postId, "comments"), orderBy("createdAt", "asc"), limit(100)),
     (snapshots) => {
@@ -496,7 +586,13 @@ export async function createFeedComment(postId: string, account: Account, text: 
     return;
   }
   try {
-    await addDoc(collection(firestore, "feedPosts", postId, "comments"), comment);
+    await addDoc(collection(firestore, "feedPosts", postId, "comments"), {
+      authorId: comment.authorId,
+      authorName: comment.authorName,
+      authorAvatar: comment.authorAvatar,
+      text: comment.text,
+      createdAt: comment.createdAt,
+    });
   } catch (error) {
     throw reportWriteError(error, "Não foi possível enviar o comentário.");
   }

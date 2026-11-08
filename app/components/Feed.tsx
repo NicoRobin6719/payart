@@ -8,10 +8,12 @@ import { Account, getCurrentAccount } from "./account-store";
 import {
   createFeedComment,
   createFeedPost,
+  createFeedQuotePost,
   deleteFeedComment,
   deleteFeedPost,
   FeedComment,
   FeedPost,
+  rankFeedPosts,
   subscribeToFeed,
   subscribeToFeedComments,
   toggleFeedLike,
@@ -54,6 +56,13 @@ export default function Feed() {
   const [feedReady, setFeedReady] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [sortMode, setSortMode] = useState<"for-you" | "recent">("for-you");
+  const [quotePost, setQuotePost] = useState<FeedPost | null>(null);
+  const [quoteText, setQuoteText] = useState("");
+  const [quoteError, setQuoteError] = useState("");
+  const [sendingQuote, setSendingQuote] = useState(false);
+
+  const orderedPosts = sortMode === "recent" ? posts : rankFeedPosts(posts, account?.id ?? null);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,6 +119,23 @@ export default function Feed() {
     }
   }
 
+  async function handleQuote(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!account || !quotePost) return;
+    setSendingQuote(true);
+    setQuoteError("");
+    try {
+      await createFeedQuotePost(quotePost, account, quoteText);
+      setQuotePost(null);
+      setQuoteText("");
+      setError("");
+    } catch (issue) {
+      setQuoteError(issue instanceof Error ? issue.message : "Não foi possível compartilhar.");
+    } finally {
+      setSendingQuote(false);
+    }
+  }
+
   return (
     <section className="mx-auto max-w-3xl">
       <header className="mb-7">
@@ -119,6 +145,18 @@ export default function Feed() {
       </header>
 
       {error && <div className="mb-4"><Toast type="error" message={error} /></div>}
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2" aria-label="Ordenação do feed">
+          <button type="button" onClick={() => setSortMode("for-you")} aria-pressed={sortMode === "for-you"} className={`rounded-full px-4 py-2 text-xs font-bold transition ${sortMode === "for-you" ? "bg-[#6d28d9] text-white" : "bg-white text-[#475569] hover:bg-[#f4efff]"}`}>
+            Para você
+          </button>
+          <button type="button" onClick={() => setSortMode("recent")} aria-pressed={sortMode === "recent"} className={`rounded-full px-4 py-2 text-xs font-bold transition ${sortMode === "recent" ? "bg-[#6d28d9] text-white" : "bg-white text-[#475569] hover:bg-[#f4efff]"}`}>
+            Recentes
+          </button>
+        </div>
+        {sortMode === "for-you" && <span className="text-xs text-[#746e80]">Relevância, atividade e recência</span>}
+      </div>
 
       {account ? (
         <form onSubmit={handlePublish} className="mb-5 rounded-[24px] border border-black/5 bg-white p-5 shadow-sm">
@@ -158,16 +196,63 @@ export default function Feed() {
             <h2 className="font-bold">O feed está começando</h2>
             <p className="mt-2 text-sm text-[#475569]">Seja a primeira pessoa a compartilhar algo com a comunidade.</p>
           </div>
-        ) : posts.map((post) => (
+        ) : orderedPosts.map((post) => (
           <FeedPostCard
             key={post.id}
             post={post}
             account={account}
             onAction={handleAction}
+            onQuote={(selectedPost) => {
+              setQuotePost(selectedPost);
+              setQuoteText("");
+              setQuoteError("");
+            }}
             onSignIn={() => router.push(`/login?next=${encodeURIComponent("/feed")}`)}
           />
         ))}
       </div>
+
+      {quotePost && account && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !sendingQuote) setQuotePost(null);
+        }}>
+          <form role="dialog" aria-modal="true" aria-labelledby="quote-title" onSubmit={handleQuote} className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 id="quote-title" className="text-xl font-extrabold">Compartilhe com seu comentário</h2>
+                <p className="mt-1 text-sm text-[#746e80]">Sua publicação será exibida junto da obra original.</p>
+              </div>
+              <button type="button" onClick={() => setQuotePost(null)} disabled={sendingQuote} aria-label="Fechar" className="rounded-lg px-2 py-1 text-lg text-[#746e80] hover:bg-black/5">×</button>
+            </div>
+            {quoteError && <div className="mt-4"><Toast type="error" message={quoteError} /></div>}
+            <label htmlFor="feed-quote" className="sr-only">Adicione um comentário ao compartilhamento</label>
+            <textarea
+              id="feed-quote"
+              autoFocus
+              required
+              maxLength={500}
+              rows={3}
+              value={quoteText}
+              onChange={(event) => setQuoteText(event.target.value)}
+              placeholder="O que você pensa sobre esta publicação?"
+              className="mt-5 min-h-24 w-full resize-y rounded-xl border border-black/10 px-4 py-3 text-sm leading-6 outline-none focus:border-[#6d28d9]"
+            />
+            <div className="mt-3 rounded-2xl border border-black/5 bg-[#faf9fc] p-4">
+              <div className="flex items-center gap-2">
+                <Avatar src={quotePost.type === "repost" ? quotePost.originalAuthorAvatar ?? "" : quotePost.authorAvatar} name={quotePost.type === "repost" ? quotePost.originalAuthorName ?? quotePost.authorName : quotePost.authorName} size={32} />
+                <span className="text-sm font-bold">{quotePost.type === "repost" ? quotePost.originalAuthorName : quotePost.authorName}</span>
+              </div>
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#475569]">{quotePost.type === "repost" ? quotePost.originalText : quotePost.text}</p>
+            </div>
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button type="button" disabled={sendingQuote} onClick={() => setQuotePost(null)} className="rounded-xl px-4 py-2.5 text-sm font-bold text-[#475569] hover:bg-black/5">Cancelar</button>
+              <button type="submit" disabled={sendingQuote || !quoteText.trim()} className="inline-flex items-center gap-2 rounded-xl bg-[#6d28d9] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#5b21b6] disabled:opacity-50">
+                <Repeat2 size={15} /> {sendingQuote ? "Publicando..." : "Publicar citação"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <p className="mt-6 text-center text-xs leading-5 text-[#746e80]">
         As publicações e interações de contas conectadas são sincronizadas em tempo real. Contas em modo local salvam suas atividades somente neste navegador.
@@ -180,11 +265,13 @@ function FeedPostCard({
   post,
   account,
   onAction,
+  onQuote,
   onSignIn,
 }: {
   post: FeedPost;
   account: Account | null;
   onAction: (action: () => Promise<void>) => void;
+  onQuote: (post: FeedPost) => void;
   onSignIn: () => void;
 }) {
   const [showComments, setShowComments] = useState(false);
@@ -194,8 +281,8 @@ function FeedPostCard({
 
   useEffect(() => {
     if (!showComments) return;
-    return subscribeToFeedComments(post.id, setComments, (issue) => setCommentError(issue.message));
-  }, [post.id, showComments]);
+    return subscribeToFeedComments(post.id, setComments, (issue) => setCommentError(issue.message), post.isLocal);
+  }, [post.id, post.isLocal, showComments]);
 
   async function handleComment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -214,22 +301,54 @@ function FeedPostCard({
   return (
     <article className="rounded-[24px] border border-black/5 bg-white p-5 shadow-sm">
       {isRepost && (
-        <p className="mb-3 flex items-center gap-2 pl-1 text-xs font-semibold text-[#746e80]">
-          <Repeat2 size={14} /> {post.authorId === account?.id ? "Você repostou" : `${post.authorName} repostou`}
-        </p>
+        <div className="mb-3 flex items-center justify-between pl-1">
+          <p className="flex items-center gap-2 text-xs font-semibold text-[#746e80]">
+            <Repeat2 size={14} />
+            {post.authorId === account?.id ? "Você citou" : `${post.authorName} citou`}
+          </p>
+          {account?.id === post.authorId && (
+            <button
+              type="button"
+              aria-label="Excluir repost"
+              title="Excluir repost"
+              onClick={() => onAction(() => deleteFeedPost(post, account))}
+              className="rounded-lg p-2 text-[#746e80] transition hover:bg-red-50 hover:text-red-700"
+            >
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
       )}
       <div className="flex items-start gap-3">
-        <Avatar src={isRepost ? post.originalAuthorAvatar ?? "" : post.authorAvatar} name={isRepost ? post.originalAuthorName ?? post.authorName : post.authorName} />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="font-bold">{isRepost ? post.originalAuthorName : post.authorName}</span>
-            <time dateTime={post.createdAt} className="text-xs text-[#746e80]">{formatPostDate(post.createdAt)}</time>
+        {isRepost ? (
+          <div className="min-w-0 flex-1 pl-1">
+            {post.text.trim() && (
+              <p className="mb-3 whitespace-pre-wrap break-words text-sm leading-6">{post.text}</p>
+            )}
+            <div className="flex items-start gap-3">
+              <Avatar src={post.originalAuthorAvatar ?? ""} name={post.originalAuthorName ?? "Artista"} />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="font-bold">{post.originalAuthorName}</span>
+                  <time dateTime={post.createdAt} className="text-xs text-[#746e80]">{formatPostDate(post.createdAt)}</time>
+                </div>
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">{post.originalText}</p>
+              </div>
+            </div>
           </div>
-          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">
-            {isRepost ? post.originalText : post.text}
-          </p>
-        </div>
-        {account?.id === post.authorId && (
+        ) : (
+          <>
+            <Avatar src={post.authorAvatar} name={post.authorName} />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="font-bold">{post.authorName}</span>
+                <time dateTime={post.createdAt} className="text-xs text-[#746e80]">{formatPostDate(post.createdAt)}</time>
+              </div>
+              <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-6">{post.text}</p>
+            </div>
+          </>
+        )}
+        {!isRepost && account?.id === post.authorId && (
           <button
             type="button"
             aria-label="Excluir publicação"
@@ -257,18 +376,26 @@ function FeedPostCard({
           aria-expanded={showComments}
           className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${showComments ? "bg-[#f4efff] text-[#6d28d9]" : "text-[#475569] hover:bg-black/5"}`}
         >
-          <MessageCircle size={16} /> {showComments ? "Fechar comentários" : "Comentar"}
+          <MessageCircle size={16} /> {showComments ? "Fechar comentários" : "Comentar"} <span>{post.commentCount}</span>
         </button>
-        {!isRepost && (
+        <>
           <button
             type="button"
             onClick={account ? () => onAction(() => toggleFeedRepost(post, account)) : onSignIn}
             aria-pressed={post.isReposted}
             className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition ${post.isReposted ? "bg-green-50 text-green-700" : "text-[#475569] hover:bg-black/5"}`}
           >
-            <Repeat2 size={16} /> Repostar <span>{post.repostCount}</span>
+            <Repeat2 size={16} /> {post.isReposted ? "Repostado" : "Repostar"} <span>{post.repostCount}</span>
           </button>
-        )}
+          <button
+            type="button"
+            onClick={account ? () => onQuote(post) : onSignIn}
+            aria-label="Citar publicação com comentário"
+            className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-[#475569] transition hover:bg-black/5"
+          >
+            <MessageCircle size={16} /> Citar
+          </button>
+        </>
       </div>
 
       {showComments && (
